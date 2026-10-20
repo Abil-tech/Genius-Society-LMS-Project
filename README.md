@@ -7,7 +7,6 @@
 <br>
 
 <a href="https://github.com/USERNAME/genius-society"><img src="https://img.shields.io/badge/GITHUB-181717?style=for-the-badge&logo=github&logoColor=white" alt="GitHub" /></a>
-<a href="https://youtube.com/@CHANNEL"><img src="https://img.shields.io/badge/YOUTUBE-FF0000?style=for-the-badge&logo=youtube&logoColor=white" alt="YouTube" /></a>
 <img src="https://komarev.com/ghpvc/?username=USERNAME-genius-society&label=VIEWS&color=0e75b6&style=for-the-badge" alt="Views" />
 
 </div>
