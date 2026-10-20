@@ -1,0 +1,51 @@
+@import '@fontsource-variable/plus-jakarta-sans';
+
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+/* Design tokens (RGB triplets, supports Tailwind alpha). Nilai estimasi dari Figma. */
+:root {
+  /* Landing + login */
+  --gs-orange: 255 149 0; /* #FF9500 */
+  --gs-orange-dark: 230 134 0;
+  --gs-navy: 11 36 71; /* #0B2447 */
+  --gs-canvas-landing: 241 243 246; /* #F1F3F6 - sedikit lebih gelap/kontras dari #FFFFFF kartu */
+  --gs-canvas-login: 241 241 243; /* #F1F1F3 */
+  --gs-surface: 255 255 255;
+  --gs-text-muted: 104 115 133; /* #687385 */
+  --gs-border: 233 236 241;
+  --gs-peach: 254 234 220; /* #FEEADC */
+
+  /* Dashboard (dipakai di tahap berikutnya) */
+  --gs-dash-bg: 255 248 245; /* #FFF8F5 */
+  --gs-dash-border: 235 212 197; /* #EBD4C5 */
+  --gs-dash-text: 48 37 29; /* #30251D */
+  --gs-dash-primary: 255 152 0; /* #FF9800 */
+}
+
+html {
+  scroll-behavior: smooth;
+}
+
+body {
+  margin: 0;
+  background: rgb(var(--gs-canvas-landing));
+  color: rgb(var(--gs-navy));
+  font-family: 'Plus Jakarta Sans Variable', Inter, system-ui, sans-serif;
+  -webkit-font-smoothing: antialiased;
+}
+
+:focus-visible {
+  outline: 2px solid rgb(var(--gs-orange));
+  outline-offset: 2px;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  html {
+    scroll-behavior: auto;
+  }
+  * {
+    transition: none !important;
+  }
+}
