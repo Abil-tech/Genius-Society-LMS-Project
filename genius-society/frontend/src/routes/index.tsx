@@ -4,7 +4,10 @@ import LoginPage from '../pages/LoginPage'
 import AdminLoginPage from '../pages/AdminLoginPage'
 import ProtectedRoute from '../components/ProtectedRoute'
 import SuperAdminDashboard from '../pages/SuperAdminDashboard'
-import AdminDashboard from '../pages/AdminDashboard'
+import AdminDashboard from '../pages/admin/AdminDashboardPage'
+import StudentsManagementPage from '../pages/admin/StudentsManagementPage'
+import TeachersManagementPage from '../pages/admin/TeachersManagementPage'
+import SubjectsManagementPage from '../pages/admin/SubjectsManagementPage'
 import TeacherDashboard from '../pages/TeacherDashboard'
 import StudentDashboard from '../pages/StudentDashboard'
 import CurriculumDashboard from '../pages/CurriculumDashboard'
@@ -23,8 +26,11 @@ export default function AppRoutes() {
         <Route path="/super-admin/*" element={<SuperAdminDashboard />} />
       </Route>
 
-      <Route element={<ProtectedRoute allowedRoles={['admin']} />}>
-        <Route path="/admin/*" element={<AdminDashboard />} />
+      <Route element={<ProtectedRoute allowedRoles={['admin', 'super_admin']} />}>
+        <Route path="/admin" element={<AdminDashboard />} />
+        <Route path="/admin/students" element={<StudentsManagementPage />} />
+        <Route path="/admin/teachers" element={<TeachersManagementPage />} />
+        <Route path="/admin/subjects" element={<SubjectsManagementPage />} />
       </Route>
 
       <Route element={<ProtectedRoute allowedRoles={['teacher']} />}>

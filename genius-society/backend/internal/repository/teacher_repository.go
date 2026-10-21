@@ -57,7 +57,7 @@ func (r *TeacherRepository) Update(ctx context.Context, id bson.ObjectID, update
 func (r *TeacherRepository) List(ctx context.Context, filter bson.M, page, limit int64) ([]*model.Teacher, int64, error) {
 	total, _ := r.col.CountDocuments(ctx, filter)
 	skip := (page - 1) * limit
-	opts := options.Find().SetSkip(skip).SetLimit(limit)
+	opts := options.Find().SetSkip(skip).SetLimit(limit).SetSort(bson.D{{Key: "createdAt", Value: -1}})
 	cur, err := r.col.Find(ctx, filter, opts)
 	if err != nil {
 		return nil, 0, err
@@ -66,4 +66,25 @@ func (r *TeacherRepository) List(ctx context.Context, filter bson.M, page, limit
 	var teachers []*model.Teacher
 	cur.All(ctx, &teachers)
 	return teachers, total, nil
+}
+
+func (r *TeacherRepository) FindByNIP(ctx context.Context, nip string) (*model.Teacher, error) {
+	if nip == "" {
+		return nil, mongo.ErrNoDocuments
+	}
+	var t model.Teacher
+	err := r.col.FindOne(ctx, bson.M{"nip": nip}).Decode(&t)
+	if err != nil {
+		return nil, err
+	}
+	return &t, nil
+}
+
+func (r *TeacherRepository) Delete(ctx context.Context, id bson.ObjectID) error {
+	_, err := r.col.DeleteOne(ctx, bson.M{"_id": id})
+	return err
+}
+
+func (r *TeacherRepository) Count(ctx context.Context, filter bson.M) (int64, error) {
+	return r.col.CountDocuments(ctx, filter)
 }

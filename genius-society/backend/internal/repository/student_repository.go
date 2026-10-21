@@ -57,7 +57,7 @@ func (r *StudentRepository) Update(ctx context.Context, id bson.ObjectID, update
 func (r *StudentRepository) List(ctx context.Context, filter bson.M, page, limit int64) ([]*model.Student, int64, error) {
 	total, _ := r.col.CountDocuments(ctx, filter)
 	skip := (page - 1) * limit
-	opts := options.Find().SetSkip(skip).SetLimit(limit)
+	opts := options.Find().SetSkip(skip).SetLimit(limit).SetSort(bson.D{{Key: "createdAt", Value: -1}})
 	cur, err := r.col.Find(ctx, filter, opts)
 	if err != nil {
 		return nil, 0, err
@@ -66,4 +66,58 @@ func (r *StudentRepository) List(ctx context.Context, filter bson.M, page, limit
 	var students []*model.Student
 	cur.All(ctx, &students)
 	return students, total, nil
+}
+
+func (r *StudentRepository) FindByNIS(ctx context.Context, nis string) (*model.Student, error) {
+	var s model.Student
+	err := r.col.FindOne(ctx, bson.M{"nis": nis}).Decode(&s)
+	if err != nil {
+		return nil, err
+	}
+	return &s, nil
+}
+
+func (r *StudentRepository) FindByNISN(ctx context.Context, nisn string) (*model.Student, error) {
+	if nisn == "" {
+		return nil, mongo.ErrNoDocuments
+	}
+	var s model.Student
+	err := r.col.FindOne(ctx, bson.M{"nisn": nisn}).Decode(&s)
+	if err != nil {
+		return nil, err
+	}
+	return &s, nil
+}
+
+func (r *StudentRepository) Delete(ctx context.Context, id bson.ObjectID) error {
+	_, err := r.col.DeleteOne(ctx, bson.M{"_id": id})
+	return err
+}
+
+func (r *StudentRepository) Count(ctx context.Context, filter bson.M) (int64, error) {
+	return r.col.CountDocuments(ctx, filter)
+}
+
+func (r *StudentRepository) BulkUpdateClass(ctx context.Context, studentIDs []bson.ObjectID, classID bson.ObjectID) error {
+	filter := bson.M{"_id": bson.M{"$in": studentIDs}}
+	update := bson.M{
+		"$set": bson.M{
+			"classId":   classID,
+			"updatedAt": time.Now(),
+		},
+	}
+	_, err := r.col.UpdateMany(ctx, filter, update)
+	return err
+}
+
+func (r *StudentRepository) BulkUpdateStatus(ctx context.Context, studentIDs []bson.ObjectID, status string) error {
+	filter := bson.M{"_id": bson.M{"$in": studentIDs}}
+	update := bson.M{
+		"$set": bson.M{
+			"status":    status,
+			"updatedAt": time.Now(),
+		},
+	}
+	_, err := r.col.UpdateMany(ctx, filter, update)
+	return err
 }

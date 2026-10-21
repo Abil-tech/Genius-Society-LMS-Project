@@ -27,10 +27,16 @@ func main() {
 	userRepo := repository.NewUserRepository(db)
 	teacherRepo := repository.NewTeacherRepository(db)
 	studentRepo := repository.NewStudentRepository(db)
+	classRepo := repository.NewClassRepository(db)
+	subjectRepo := repository.NewSubjectRepository(db)
 
 	// Services
 	authSvc := service.NewAuthService(userRepo, teacherRepo, cfg)
 	userSvc := service.NewUserService(userRepo, teacherRepo, studentRepo)
+	adminDashboardSvc := service.NewAdminDashboardService(db)
+	studentManagementSvc := service.NewStudentManagementService(studentRepo, userRepo, classRepo, db)
+	teacherManagementSvc := service.NewTeacherManagementService(teacherRepo, userRepo, classRepo, db)
+	subjectManagementSvc := service.NewSubjectManagementService(subjectRepo, teacherRepo, db)
 
 	// Storage (B2) — optional: log warning if not configured
 	b2, err := storage.NewB2Storage(cfg)
@@ -43,7 +49,7 @@ func main() {
 	_ = b2 // will be injected into future handlers
 
 	// Router
-	r := routes.Setup(cfg, authSvc, userSvc)
+	r := routes.Setup(cfg, authSvc, userSvc, adminDashboardSvc, studentManagementSvc, teacherManagementSvc, subjectManagementSvc)
 
 	addr := fmt.Sprintf(":%s", cfg.Port)
 	log.Printf("Server starting on %s (env: %s)", addr, cfg.AppEnv)

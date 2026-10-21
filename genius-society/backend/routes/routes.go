@@ -14,6 +14,10 @@ func Setup(
 	cfg *config.Config,
 	authSvc *service.AuthService,
 	userSvc *service.UserService,
+	adminDashboardSvc *service.AdminDashboardService,
+	studentManagementSvc *service.StudentManagementService,
+	teacherManagementSvc *service.TeacherManagementService,
+	subjectManagementSvc *service.SubjectManagementService,
 ) *gin.Engine {
 	if cfg.AppEnv == "production" {
 		gin.SetMode(gin.ReleaseMode)
@@ -33,6 +37,7 @@ func Setup(
 	// Handlers
 	authHandler := handler.NewAuthHandler(authSvc, cfg)
 	userHandler := handler.NewUserHandler(userSvc)
+	adminDashboardHandler := handler.NewAdminDashboardHandler(adminDashboardSvc)
 
 	api := r.Group("/api")
 
@@ -48,6 +53,51 @@ func Setup(
 	protected := api.Group("/")
 	protected.Use(middleware.Auth(authSvc))
 	protected.Use(middleware.PrincipalReadOnly())
+
+	// Admin Dashboard endpoint (Hanya Admin dan Super Admin)
+	protected.GET("/admin/dashboard", middleware.RequireRoles(model.RoleAdmin, model.RoleSuperAdmin), adminDashboardHandler.GetMetrics)
+
+	// Student Management routes (Admin, Super Admin, Kepala Sekolah read-only)
+	studentHandler := handler.NewStudentManagementHandler(studentManagementSvc)
+	students := protected.Group("/students")
+	{
+		students.GET("", studentHandler.List)
+		students.GET("/stats", studentHandler.Stats)
+		students.GET("/:id", studentHandler.GetOne)
+		students.POST("", middleware.RequireRoles(model.RoleAdmin, model.RoleSuperAdmin), studentHandler.Create)
+		students.PUT("/:id", middleware.RequireRoles(model.RoleAdmin, model.RoleSuperAdmin), studentHandler.Update)
+		students.POST("/bulk/class", middleware.RequireRoles(model.RoleAdmin, model.RoleSuperAdmin), studentHandler.BulkClass)
+		students.POST("/bulk/status", middleware.RequireRoles(model.RoleAdmin, model.RoleSuperAdmin), studentHandler.BulkStatus)
+		students.POST("/:id/account", middleware.RequireRoles(model.RoleAdmin, model.RoleSuperAdmin), studentHandler.CreateAccount)
+		students.PATCH("/:id/account/toggle", middleware.RequireRoles(model.RoleAdmin, model.RoleSuperAdmin), studentHandler.ToggleAccount)
+		students.DELETE("/:id", middleware.RequireRoles(model.RoleAdmin, model.RoleSuperAdmin), studentHandler.Delete)
+	}
+
+	// Teacher Management routes (Admin, Super Admin, Kepala Sekolah read-only)
+	teacherHandler := handler.NewTeacherManagementHandler(teacherManagementSvc)
+	teachers := protected.Group("/teachers")
+	{
+		teachers.GET("", teacherHandler.List)
+		teachers.GET("/stats", teacherHandler.Stats)
+		teachers.GET("/:id", teacherHandler.GetOne)
+		teachers.POST("", middleware.RequireRoles(model.RoleAdmin, model.RoleSuperAdmin, model.RoleCurriculum), teacherHandler.Create)
+		teachers.PUT("/:id", middleware.RequireRoles(model.RoleAdmin, model.RoleSuperAdmin, model.RoleCurriculum), teacherHandler.Update)
+		teachers.DELETE("/:id", middleware.RequireRoles(model.RoleAdmin, model.RoleSuperAdmin), teacherHandler.Delete)
+		teachers.POST("/:id/account", middleware.RequireRoles(model.RoleAdmin, model.RoleSuperAdmin), teacherHandler.CreateAccount)
+		teachers.PATCH("/:id/account/toggle", middleware.RequireRoles(model.RoleAdmin, model.RoleSuperAdmin), teacherHandler.ToggleAccount)
+	}
+
+	// Subject Management routes (Admin, Super Admin, Kurikulum, Kepala Sekolah read-only)
+	subjectHandler := handler.NewSubjectManagementHandler(subjectManagementSvc)
+	subjects := protected.Group("/subjects")
+	{
+		subjects.GET("", subjectHandler.List)
+		subjects.GET("/stats", subjectHandler.Stats)
+		subjects.GET("/:id", subjectHandler.GetOne)
+		subjects.POST("", middleware.RequireRoles(model.RoleAdmin, model.RoleSuperAdmin, model.RoleCurriculum), subjectHandler.Create)
+		subjects.PUT("/:id", middleware.RequireRoles(model.RoleAdmin, model.RoleSuperAdmin, model.RoleCurriculum), subjectHandler.Update)
+		subjects.DELETE("/:id", middleware.RequireRoles(model.RoleAdmin, model.RoleSuperAdmin, model.RoleCurriculum), subjectHandler.Delete)
+	}
 
 	// User management
 	// Super Admin: CRUD all users

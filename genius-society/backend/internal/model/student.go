@@ -7,11 +7,20 @@ import (
 )
 
 type Student struct {
-	ID        bson.ObjectID `bson:"_id,omitempty" json:"id"`
-	UserID    bson.ObjectID `bson:"userId" json:"userId"`
-	NIS       string        `bson:"nis" json:"nis"`
-	ClassID   bson.ObjectID `bson:"classId,omitempty" json:"classId,omitempty"`
-	Status    string        `bson:"status" json:"status"` // active, inactive, graduated
-	CreatedAt time.Time     `bson:"createdAt" json:"createdAt"`
-	UpdatedAt time.Time     `bson:"updatedAt" json:"updatedAt"`
+	ID             bson.ObjectID `bson:"_id,omitempty" json:"id"`
+	UserID         bson.ObjectID `bson:"userId,omitempty" json:"userId,omitempty"`
+	NIS            string        `bson:"nis" json:"nis"`
+	NISN           string        `bson:"nisn,omitempty" json:"nisn,omitempty"`
+	Gender         string        `bson:"gender,omitempty" json:"gender,omitempty"` // "L" / "P"
+	BirthPlace     string        `bson:"birthPlace,omitempty" json:"birthPlace,omitempty"`
+	BirthDate      string        `bson:"birthDate,omitempty" json:"birthDate,omitempty"`
+	Address        string        `bson:"address,omitempty" json:"address,omitempty"`
+	ParentName     string        `bson:"parentName,omitempty" json:"parentName,omitempty"`
+	ParentPhone    string        `bson:"parentPhone,omitempty" json:"parentPhone,omitempty"`
+	EnrollmentYear int           `bson:"enrollmentYear,omitempty" json:"enrollmentYear,omitempty"`
+	PhotoURL       string        `bson:"photoUrl,omitempty" json:"photoUrl,omitempty"`
+	ClassID        bson.ObjectID `bson:"classId,omitempty" json:"classId,omitempty"`
+	Status         string        `bson:"status" json:"status"` // active, inactive, graduated, transferred, archived
+	CreatedAt      time.Time     `bson:"createdAt" json:"createdAt"`
+	UpdatedAt      time.Time     `bson:"updatedAt" json:"updatedAt"`
 }
