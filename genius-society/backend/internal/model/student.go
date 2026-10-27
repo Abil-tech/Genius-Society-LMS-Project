@@ -8,6 +8,7 @@ import (
 
 type Student struct {
 	ID             bson.ObjectID `bson:"_id,omitempty" json:"id"`
+	SchoolID       bson.ObjectID `bson:"schoolId,omitempty" json:"schoolId,omitempty"`
 	UserID         bson.ObjectID `bson:"userId,omitempty" json:"userId,omitempty"`
 	NIS            string        `bson:"nis" json:"nis"`
 	NISN           string        `bson:"nisn,omitempty" json:"nisn,omitempty"`
@@ -21,6 +22,8 @@ type Student struct {
 	PhotoURL       string        `bson:"photoUrl,omitempty" json:"photoUrl,omitempty"`
 	ClassID        bson.ObjectID `bson:"classId,omitempty" json:"classId,omitempty"`
 	Status         string        `bson:"status" json:"status"` // active, inactive, graduated, transferred, archived
+	GraduationYear *int          `bson:"graduationYear,omitempty" json:"graduationYear,omitempty"`
+	GraduatedAt    *time.Time    `bson:"graduatedAt,omitempty" json:"graduatedAt,omitempty"`
 	CreatedAt      time.Time     `bson:"createdAt" json:"createdAt"`
 	UpdatedAt      time.Time     `bson:"updatedAt" json:"updatedAt"`
 }

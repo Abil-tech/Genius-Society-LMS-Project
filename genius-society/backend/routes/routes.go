@@ -143,7 +143,31 @@ func Setup(
 		academicYears.POST("/", middleware.RequireRoles(model.RoleAdmin), academicYearHandler.Create)
 		academicYears.PUT("/:id", middleware.RequireRoles(model.RoleAdmin), academicYearHandler.Update)
 		academicYears.PATCH("/:id/activate", middleware.RequireRoles(model.RoleAdmin), academicYearHandler.Activate)
+		academicYears.PATCH("/:id/archive", middleware.RequireRoles(model.RoleAdmin), academicYearHandler.Archive)
 		academicYears.DELETE("/:id", middleware.RequireRoles(model.RoleAdmin), academicYearHandler.Delete)
+
+		// Promotion (Kenaikan Kelas)
+		academicYears.GET("/:id/promotion/candidates", middleware.RequireRoles(model.RoleAdmin), academicYearHandler.GetPromotionCandidates)
+		academicYears.POST("/:id/promotion/preview", middleware.RequireRoles(model.RoleAdmin), academicYearHandler.PreviewPromotion)
+		academicYears.POST("/:id/promotion/execute", middleware.RequireRoles(model.RoleAdmin), academicYearHandler.ExecutePromotion)
+		academicYears.GET("/:id/promotion/history", middleware.RequireRoles(model.RoleAdmin), academicYearHandler.GetPromotionHistory)
+
+		// Graduation (Kelulusan)
+		academicYears.GET("/:id/graduation/candidates", middleware.RequireRoles(model.RoleAdmin), academicYearHandler.GetGraduationCandidates)
+		academicYears.POST("/:id/graduation/preview", middleware.RequireRoles(model.RoleAdmin), academicYearHandler.PreviewGraduation)
+		academicYears.POST("/:id/graduation/execute", middleware.RequireRoles(model.RoleAdmin), academicYearHandler.ExecuteGraduation)
+		academicYears.GET("/:id/graduation/history", middleware.RequireRoles(model.RoleAdmin), academicYearHandler.GetGraduationHistory)
+
+		// Suspended decisions
+		academicYears.GET("/:id/decisions/suspended", middleware.RequireRoles(model.RoleAdmin), academicYearHandler.GetSuspendedDecisions)
+	}
+
+	// Academic Decisions review & resolve (Admin only, school scoped)
+	academicDecisions := protected.Group("/academic-decisions")
+	{
+		academicDecisions.GET("/:decisionId", middleware.RequireRoles(model.RoleAdmin), academicYearHandler.GetDecisionDetail)
+		academicDecisions.POST("/:decisionId/review", middleware.RequireRoles(model.RoleAdmin), academicYearHandler.ReviewDecision)
+		academicDecisions.POST("/:decisionId/resolve", middleware.RequireRoles(model.RoleAdmin), academicYearHandler.ResolveDecision)
 	}
 
 	// User management

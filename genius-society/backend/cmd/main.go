@@ -38,7 +38,22 @@ func main() {
 	teacherManagementSvc := service.NewTeacherManagementService(teacherRepo, userRepo, classRepo, db)
 	subjectManagementSvc := service.NewSubjectManagementService(subjectRepo, teacherRepo, db)
 	// Academic Year service (Admin scoped)
-	academicYearSvc := service.NewAcademicYearService(repository.NewAcademicYearRepository(db))
+	ayRepo := repository.NewAcademicYearRepository(db)
+	enrollmentRepo := repository.NewEnrollmentRepository(db)
+	decisionRepo := repository.NewAcademicDecisionRepository(db)
+	rolloverJobRepo := repository.NewRolloverJobRepository(db)
+	auditRepo := repository.NewAuditLogRepository(db)
+	academicYearSvc := service.NewAcademicYearService(
+		ayRepo,
+		studentRepo,
+		classRepo,
+		userRepo,
+		enrollmentRepo,
+		decisionRepo,
+		rolloverJobRepo,
+		auditRepo,
+		db,
+	)
 
 	// Class management service
 	classManagementSvc := service.NewClassService(classRepo)

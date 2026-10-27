@@ -26,6 +26,13 @@ func (r *AcademicYearRepository) Create(ctx context.Context, ay *model.AcademicY
 	now := time.Now()
 	ay.CreatedAt = now
 	ay.UpdatedAt = now
+	if ay.Status == "" {
+		if ay.IsActive {
+			ay.Status = "active"
+		} else {
+			ay.Status = "inactive"
+		}
+	}
 
 	res, err := r.coll.InsertOne(ctx, ay)
 	if err != nil {
@@ -111,11 +118,11 @@ func (r *AcademicYearRepository) Delete(ctx context.Context, schoolID, id bson.O
 
 // ---------- ACTIVATE ----------
 func (r *AcademicYearRepository) Activate(ctx context.Context, schoolID, id bson.ObjectID) error {
-	// 1. Deactivate all years for the school
+	// 1. Deactivate other active years for the school
 	_, err := r.coll.UpdateMany(
 		ctx,
 		bson.M{"schoolId": schoolID, "isActive": true},
-		bson.M{"$set": bson.M{"isActive": false, "updatedAt": time.Now()}},
+		bson.M{"$set": bson.M{"isActive": false, "status": "inactive", "updatedAt": time.Now()}},
 	)
 	if err != nil {
 		return err
@@ -124,7 +131,21 @@ func (r *AcademicYearRepository) Activate(ctx context.Context, schoolID, id bson
 	_, err = r.coll.UpdateOne(
 		ctx,
 		bson.M{"_id": id, "schoolId": schoolID},
-		bson.M{"$set": bson.M{"isActive": true, "updatedAt": time.Now()}},
+		bson.M{"$set": bson.M{"isActive": true, "status": "active", "updatedAt": time.Now()}},
 	)
+	return err
+}
+
+// ---------- ARCHIVE ----------
+func (r *AcademicYearRepository) Archive(ctx context.Context, schoolID, id bson.ObjectID) error {
+	filter := bson.M{"_id": id, "schoolId": schoolID}
+	update := bson.M{
+		"$set": bson.M{
+			"status":    "archived",
+			"isActive":  false,
+			"updatedAt": time.Now(),
+		},
+	}
+	_, err := r.coll.UpdateOne(ctx, filter, update)
 	return err
 }
