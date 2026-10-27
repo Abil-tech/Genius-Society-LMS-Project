@@ -25,6 +25,7 @@ type User struct {
 	PasswordHash string        `bson:"passwordHash" json:"-"`
 	Role         Role          `bson:"role" json:"role"`
 	IsActive     bool          `bson:"isActive" json:"isActive"`
+	SchoolID     bson.ObjectID `bson:"schoolId,omitempty" json:"schoolId,omitempty"`
 	CreatedAt    time.Time     `bson:"createdAt" json:"createdAt"`
 	UpdatedAt    time.Time     `bson:"updatedAt" json:"updatedAt"`
 }

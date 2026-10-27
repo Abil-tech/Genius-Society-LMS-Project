@@ -16,9 +16,9 @@ import (
 )
 
 type Claims struct {
-	UserID   string     `json:"sub"`
-	Role     model.Role `json:"role"`
-	IsWalas  bool       `json:"isWalas"`
+	UserID  string     `json:"sub"`
+	Role    model.Role `json:"role"`
+	IsWalas bool       `json:"isWalas"`
 	jwt.RegisteredClaims
 }
 

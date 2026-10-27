@@ -24,3 +24,5 @@ type Student struct {
 	CreatedAt      time.Time     `bson:"createdAt" json:"createdAt"`
 	UpdatedAt      time.Time     `bson:"updatedAt" json:"updatedAt"`
 }
+
+// ID, UserID, NIS/NISN, Gender, BirthPlace, BirthDate, Address, ParentName, ParentPhone, EnrollmentYear, PhotoURL, ClassID, Status

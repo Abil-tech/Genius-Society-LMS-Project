@@ -68,6 +68,26 @@ func (r *UserRepository) Delete(ctx context.Context, id bson.ObjectID) error {
 	return err
 }
 
+func (r *UserRepository) UpdateSchoolID(ctx context.Context, userID, schoolID bson.ObjectID) error {
+	filter := bson.M{"_id": userID}
+	update := bson.M{
+		"$set": bson.M{
+			"schoolId":  schoolID,
+			"updatedAt": time.Now(),
+		},
+	}
+	_, err := r.col.UpdateOne(ctx, filter, update)
+	return err
+}
+
+// MigrateAdminSchoolID updates admin users without a school to the given school ID.
+func (r *UserRepository) MigrateAdminSchoolID(ctx context.Context, schoolID bson.ObjectID) error {
+	filter := bson.M{"role": model.RoleAdmin, "schoolId": bson.M{"$exists": false}}
+	update := bson.M{"$set": bson.M{"schoolId": schoolID, "updatedAt": time.Now()}}
+	_, err := r.col.UpdateMany(ctx, filter, update)
+	return err
+}
+
 func (r *UserRepository) List(ctx context.Context, filter bson.M, page, limit int64) ([]*model.User, int64, error) {
 	total, err := r.col.CountDocuments(ctx, filter)
 	if err != nil {

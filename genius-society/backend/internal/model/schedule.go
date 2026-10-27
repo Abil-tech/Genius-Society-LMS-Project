@@ -12,7 +12,7 @@ type Schedule struct {
 	SubjectID      bson.ObjectID `bson:"subjectId" json:"subjectId"`
 	TeacherID      bson.ObjectID `bson:"teacherId" json:"teacherId"`
 	AcademicYearID bson.ObjectID `bson:"academicYearId" json:"academicYearId"`
-	Day            int           `bson:"day" json:"day"`       // 1=Monday ... 7=Sunday
+	Day            int           `bson:"day" json:"day"`             // 1=Monday ... 7=Sunday
 	StartTime      string        `bson:"startTime" json:"startTime"` // "08:00"
 	EndTime        string        `bson:"endTime" json:"endTime"`     // "09:30"
 	Room           string        `bson:"room" json:"room"`

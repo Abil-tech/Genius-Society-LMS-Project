@@ -56,6 +56,30 @@ func (r *ClassRepository) List(ctx context.Context, filter bson.M, page, limit i
 	return classes, total, nil
 }
 
-func (r *ClassRepository) Count(ctx context.Context, filter bson.M) (int64, error) {
+// CountByFilter returns the count for an arbitrary filter
+func (r *ClassRepository) CountByFilter(ctx context.Context, filter bson.M) (int64, error) {
 	return r.col.CountDocuments(ctx, filter)
+}
+
+// ExistsByCode checks if a class with the same code exists within the given school and academic year (excluding archived).
+func (r *ClassRepository) ExistsByCode(ctx context.Context, schoolID, academicYearID bson.ObjectID, code string) (bool, error) {
+	filter := bson.M{"schoolId": schoolID, "academicYearId": academicYearID, "code": code, "status": bson.M{"$ne": "archived"}}
+	cnt, err := r.col.CountDocuments(ctx, filter)
+	if err != nil {
+		return false, err
+	}
+	return cnt > 0, nil
+}
+
+// Update a class (partial fields)
+func (r *ClassRepository) Update(ctx context.Context, id bson.ObjectID, update bson.M) error {
+	update["updatedAt"] = time.Now()
+	_, err := r.col.UpdateOne(ctx, bson.M{"_id": id}, bson.M{"$set": update})
+	return err
+}
+
+// Archive a class (soft‑delete)
+func (r *ClassRepository) Archive(ctx context.Context, id bson.ObjectID) error {
+	_, err := r.col.UpdateOne(ctx, bson.M{"_id": id}, bson.M{"$set": bson.M{"status": "archived", "updatedAt": time.Now()}})
+	return err
 }

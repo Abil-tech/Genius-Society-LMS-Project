@@ -9,11 +9,11 @@ import (
 type GradeType string
 
 const (
-	GradeAssignment  GradeType = "assignment"
-	GradeAssessment  GradeType = "assessment"
-	GradeProject     GradeType = "project"
-	GradeUTS         GradeType = "uts"
-	GradeUAS         GradeType = "uas"
+	GradeAssignment GradeType = "assignment"
+	GradeAssessment GradeType = "assessment"
+	GradeProject    GradeType = "project"
+	GradeUTS        GradeType = "uts"
+	GradeUAS        GradeType = "uas"
 )
 
 type Grade struct {
@@ -35,9 +35,9 @@ type GradingConfig struct {
 	ID             bson.ObjectID  `bson:"_id,omitempty" json:"id"`
 	AcademicYearID bson.ObjectID  `bson:"academicYearId" json:"academicYearId"`
 	SubjectID      *bson.ObjectID `bson:"subjectId,omitempty" json:"subjectId,omitempty"` // nil = global default
-	DailyWeight    float64        `bson:"dailyWeight" json:"dailyWeight"` // default 60
-	UTSWeight      float64        `bson:"utsWeight" json:"utsWeight"`     // default 20
-	UASWeight      float64        `bson:"uasWeight" json:"uasWeight"`     // default 20
+	DailyWeight    float64        `bson:"dailyWeight" json:"dailyWeight"`                 // default 60
+	UTSWeight      float64        `bson:"utsWeight" json:"utsWeight"`                     // default 20
+	UASWeight      float64        `bson:"uasWeight" json:"uasWeight"`                     // default 20
 	CreatedAt      time.Time      `bson:"createdAt" json:"createdAt"`
 	UpdatedAt      time.Time      `bson:"updatedAt" json:"updatedAt"`
 }

@@ -9,7 +9,7 @@ import (
 type Notification struct {
 	ID        bson.ObjectID  `bson:"_id,omitempty" json:"id"`
 	UserID    bson.ObjectID  `bson:"userId" json:"userId"`
-	Type      string         `bson:"type" json:"type"`   // new_assignment, new_material, etc.
+	Type      string         `bson:"type" json:"type"` // new_assignment, new_material, etc.
 	Title     string         `bson:"title" json:"title"`
 	Body      string         `bson:"body" json:"body"`
 	RefType   string         `bson:"refType,omitempty" json:"refType,omitempty"` // assignment, assessment, etc.

@@ -12,6 +12,7 @@ import TeacherDashboard from '../pages/TeacherDashboard'
 import StudentDashboard from '../pages/StudentDashboard'
 import CurriculumDashboard from '../pages/CurriculumDashboard'
 import PrincipalDashboard from '../pages/PrincipalDashboard'
+import ClassesManagementPage from '../pages/admin/ClassesManagementPage'
 
 export default function AppRoutes() {
   return (
@@ -31,6 +32,7 @@ export default function AppRoutes() {
         <Route path="/admin/students" element={<StudentsManagementPage />} />
         <Route path="/admin/teachers" element={<TeachersManagementPage />} />
         <Route path="/admin/subjects" element={<SubjectsManagementPage />} />
+        <Route path="/admin/classes" element={<ClassesManagementPage />} />
       </Route>
 
       <Route element={<ProtectedRoute allowedRoles={['teacher']} />}>

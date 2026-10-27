@@ -4,10 +4,10 @@ import (
 	"net/http"
 	"strconv"
 
-	"github.com/gin-gonic/gin"
 	"github.com/geniussociety/backend/internal/dto"
 	"github.com/geniussociety/backend/internal/model"
 	"github.com/geniussociety/backend/internal/service"
+	"github.com/gin-gonic/gin"
 	"go.mongodb.org/mongo-driver/v2/bson"
 )
 

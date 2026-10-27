@@ -4,15 +4,15 @@ import (
 	"net/http"
 	"strings"
 
-	"github.com/gin-gonic/gin"
 	"github.com/geniussociety/backend/internal/model"
 	"github.com/geniussociety/backend/internal/service"
+	"github.com/gin-gonic/gin"
 )
 
 const (
-	ContextKeyUserID   = "userID"
-	ContextKeyRole     = "userRole"
-	ContextKeyIsWalas  = "isWalas"
+	ContextKeyUserID  = "userID"
+	ContextKeyRole    = "userRole"
+	ContextKeyIsWalas = "isWalas"
 )
 
 func Auth(authSvc *service.AuthService) gin.HandlerFunc {

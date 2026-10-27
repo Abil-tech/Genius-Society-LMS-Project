@@ -13,11 +13,10 @@ import (
 	awsconfig "github.com/aws/aws-sdk-go-v2/config"
 	"github.com/aws/aws-sdk-go-v2/credentials"
 	"github.com/aws/aws-sdk-go-v2/service/s3"
-	"github.com/google/uuid"
 	"github.com/geniussociety/backend/internal/config"
 	"github.com/geniussociety/backend/internal/model"
+	"github.com/google/uuid"
 )
-
 
 const (
 	MaxFileSize = 50 * 1024 * 1024 // 50 MB

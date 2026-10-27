@@ -1,13 +1,16 @@
 package routes
 
 import (
-	"github.com/gin-contrib/cors"
-	"github.com/gin-gonic/gin"
+	"strings"
+
 	"github.com/geniussociety/backend/internal/config"
 	"github.com/geniussociety/backend/internal/handler"
 	"github.com/geniussociety/backend/internal/middleware"
 	"github.com/geniussociety/backend/internal/model"
+	"github.com/geniussociety/backend/internal/repository"
 	"github.com/geniussociety/backend/internal/service"
+	"github.com/gin-contrib/cors"
+	"github.com/gin-gonic/gin"
 )
 
 func Setup(
@@ -18,20 +21,38 @@ func Setup(
 	studentManagementSvc *service.StudentManagementService,
 	teacherManagementSvc *service.TeacherManagementService,
 	subjectManagementSvc *service.SubjectManagementService,
+	classManagementSvc *service.ClassManagementService,
+	academicYearSvc *service.AcademicYearService,
+	userRepo *repository.UserRepository,
 ) *gin.Engine {
 	if cfg.AppEnv == "production" {
 		gin.SetMode(gin.ReleaseMode)
 	}
 
 	r := gin.New()
+	r.RedirectTrailingSlash = false
+	r.RedirectFixedPath = false
 	r.Use(gin.Logger(), gin.Recovery())
 
 	// CORS
 	corsConfig := cors.DefaultConfig()
-	corsConfig.AllowOrigins = []string{cfg.CORSOrigin}
+	corsOrigin := strings.TrimSpace(cfg.CORSOrigin)
+	if corsOrigin == "" {
+		corsOrigin = "http://localhost:5173"
+	}
+	origins := []string{corsOrigin}
+	if cfg.AppEnv != "production" {
+		if corsOrigin == "http://localhost:5173" {
+			origins = append(origins, "http://127.0.0.1:5173")
+		} else if corsOrigin == "http://127.0.0.1:5173" {
+			origins = append(origins, "http://localhost:5173")
+		}
+	}
+	corsConfig.AllowOrigins = origins
 	corsConfig.AllowCredentials = true
-	corsConfig.AllowHeaders = []string{"Origin", "Content-Type", "Authorization"}
+	corsConfig.AllowHeaders = []string{"Origin", "Content-Type", "Accept", "Authorization", "X-Requested-With"}
 	corsConfig.AllowMethods = []string{"GET", "POST", "PUT", "PATCH", "DELETE", "OPTIONS"}
+	corsConfig.ExposeHeaders = []string{"Content-Length"}
 	r.Use(cors.New(corsConfig))
 
 	// Handlers
@@ -52,6 +73,7 @@ func Setup(
 	// Protected routes
 	protected := api.Group("/")
 	protected.Use(middleware.Auth(authSvc))
+	protected.Use(middleware.SetSchoolID(userRepo))
 	protected.Use(middleware.PrincipalReadOnly())
 
 	// Admin Dashboard endpoint (Hanya Admin dan Super Admin)
@@ -99,6 +121,31 @@ func Setup(
 		subjects.DELETE("/:id", middleware.RequireRoles(model.RoleAdmin, model.RoleSuperAdmin, model.RoleCurriculum), subjectHandler.Delete)
 	}
 
+	// Class Management routes (Admin only, school scoped)
+	classHandler := handler.NewClassManagementHandler(classManagementSvc)
+	classes := protected.Group("/classes")
+	{
+		classes.GET("", middleware.RequireRoles(model.RoleAdmin), classHandler.List)
+		classes.GET("/:id", middleware.RequireRoles(model.RoleAdmin), classHandler.GetOne)
+		classes.POST("", middleware.RequireRoles(model.RoleAdmin), classHandler.Create)
+		classes.PUT("/:id", middleware.RequireRoles(model.RoleAdmin), classHandler.Update)
+		classes.DELETE("/:id", middleware.RequireRoles(model.RoleAdmin), classHandler.Archive)
+	}
+
+	// Academic Year routes (Admin only, school scoped)
+	academicYearHandler := handler.NewAcademicYearHandler(academicYearSvc)
+	academicYears := protected.Group("/academic-years")
+	{
+		academicYears.GET("", middleware.RequireRoles(model.RoleAdmin), academicYearHandler.List)
+		academicYears.GET("/", middleware.RequireRoles(model.RoleAdmin), academicYearHandler.List)
+		academicYears.GET("/:id", middleware.RequireRoles(model.RoleAdmin), academicYearHandler.GetOne)
+		academicYears.POST("", middleware.RequireRoles(model.RoleAdmin), academicYearHandler.Create)
+		academicYears.POST("/", middleware.RequireRoles(model.RoleAdmin), academicYearHandler.Create)
+		academicYears.PUT("/:id", middleware.RequireRoles(model.RoleAdmin), academicYearHandler.Update)
+		academicYears.PATCH("/:id/activate", middleware.RequireRoles(model.RoleAdmin), academicYearHandler.Activate)
+		academicYears.DELETE("/:id", middleware.RequireRoles(model.RoleAdmin), academicYearHandler.Delete)
+	}
+
 	// User management
 	// Super Admin: CRUD all users
 	// Admin: CRUD non-admin users
@@ -110,6 +157,7 @@ func Setup(
 		users.PUT("/:id", middleware.RequireRoles(model.RoleSuperAdmin, model.RoleAdmin), userHandler.Update)
 		users.DELETE("/:id", middleware.RequireRoles(model.RoleSuperAdmin, model.RoleAdmin), userHandler.Delete)
 	}
+
 
 	// Health check
 	r.GET("/health", func(c *gin.Context) {

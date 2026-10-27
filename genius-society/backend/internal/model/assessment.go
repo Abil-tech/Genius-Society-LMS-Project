@@ -50,7 +50,7 @@ type AssessmentQuestion struct {
 	AssessmentID  bson.ObjectID `bson:"assessmentId" json:"assessmentId"`
 	Type          QuestionType  `bson:"type" json:"type"`
 	Text          string        `bson:"text" json:"text"`
-	Options       []string      `bson:"options,omitempty" json:"options,omitempty"` // for MCQ
+	Options       []string      `bson:"options,omitempty" json:"options,omitempty"`             // for MCQ
 	CorrectOption *int          `bson:"correctOption,omitempty" json:"correctOption,omitempty"` // 0-based index for MCQ
 	Weight        float64       `bson:"weight" json:"weight"`
 	Order         int           `bson:"order" json:"order"`

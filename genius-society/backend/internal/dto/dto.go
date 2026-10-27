@@ -4,7 +4,7 @@ import "github.com/geniussociety/backend/internal/model"
 
 // Auth
 type LoginRequest struct {
-	Login    string `json:"login" binding:"required"`    // email or username
+	Login string `json:"login" binding:"required"`
 	Password string `json:"password" binding:"required"`
 }
 
@@ -180,30 +180,30 @@ type CreateStudentAccountRequest struct {
 }
 
 type StudentStatsResponse struct {
-	TotalStudents        int64 `json:"totalStudents"`
-	ActiveStudents       int64 `json:"activeStudents"`
-	StudentsWithoutClass int64 `json:"studentsWithoutClass"`
+	TotalStudents          int64 `json:"totalStudents"`
+	ActiveStudents         int64 `json:"activeStudents"`
+	StudentsWithoutClass   int64 `json:"studentsWithoutClass"`
 	StudentsWithoutAccount int64 `json:"studentsWithoutAccount"`
 }
 
 // Teacher DTOs
 type TeacherItemResponse struct {
-	ID            string   `json:"id"`
-	UserID        string   `json:"userId,omitempty"`
-	Name          string   `json:"name"`
-	Username      string   `json:"username,omitempty"`
-	Email         string   `json:"email,omitempty"`
-	NIP           string   `json:"nip"`
-	Gender        string   `json:"gender,omitempty"`
-	Phone         string   `json:"phone,omitempty"`
-	Address       string   `json:"address,omitempty"`
-	Subject       string   `json:"subject,omitempty"`
-	Status        string   `json:"status"`
-	IsWalas       bool     `json:"isWalas"`
-	WalasClasses  []string `json:"walasClasses,omitempty"`
-	HasAccount    bool     `json:"hasAccount"`
-	IsActive      bool     `json:"isActive"`
-	CreatedAt     string   `json:"createdAt"`
+	ID           string   `json:"id"`
+	UserID       string   `json:"userId,omitempty"`
+	Name         string   `json:"name"`
+	Username     string   `json:"username,omitempty"`
+	Email        string   `json:"email,omitempty"`
+	NIP          string   `json:"nip"`
+	Gender       string   `json:"gender,omitempty"`
+	Phone        string   `json:"phone,omitempty"`
+	Address      string   `json:"address,omitempty"`
+	Subject      string   `json:"subject,omitempty"`
+	Status       string   `json:"status"`
+	IsWalas      bool     `json:"isWalas"`
+	WalasClasses []string `json:"walasClasses,omitempty"`
+	HasAccount   bool     `json:"hasAccount"`
+	IsActive     bool     `json:"isActive"`
+	CreatedAt    string   `json:"createdAt"`
 }
 
 type CreateTeacherRequest struct {
@@ -283,8 +283,8 @@ type UpdateSubjectRequest struct {
 }
 
 type SubjectStatsResponse struct {
-	TotalSubjects    int64 `json:"totalSubjects"`
-	ActiveSubjects   int64 `json:"activeSubjects"`
-	GeneralSubjects  int64 `json:"generalSubjects"`
+	TotalSubjects     int64 `json:"totalSubjects"`
+	ActiveSubjects    int64 `json:"activeSubjects"`
+	GeneralSubjects   int64 `json:"generalSubjects"`
 	SpecialtySubjects int64 `json:"specialtySubjects"`
 }

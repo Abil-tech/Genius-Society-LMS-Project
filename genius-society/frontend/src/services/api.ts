@@ -17,6 +17,7 @@ export interface User {
   username: string
   role: 'super_admin' | 'admin' | 'teacher' | 'student' | 'curriculum' | 'principal'
   isActive: boolean
+  schoolID?: string
 }
 
 export interface ApiResponse<T> {

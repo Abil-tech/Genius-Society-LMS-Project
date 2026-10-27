@@ -7,17 +7,17 @@ import (
 )
 
 type Assignment struct {
-	ID             bson.ObjectID   `bson:"_id,omitempty" json:"id"`
-	Title          string          `bson:"title" json:"title"`
-	Description    string          `bson:"description" json:"description"`
-	SubjectID      bson.ObjectID   `bson:"subjectId" json:"subjectId"`
-	ClassIDs       []bson.ObjectID `bson:"classIds" json:"classIds"`
-	Deadline       time.Time       `bson:"deadline" json:"deadline"`
-	Attachments    []FileRef       `bson:"attachments" json:"attachments"`
-	AllowResubmit  bool            `bson:"allowResubmit" json:"allowResubmit"`
-	TeacherID      bson.ObjectID   `bson:"teacherId" json:"teacherId"`
-	CreatedAt      time.Time       `bson:"createdAt" json:"createdAt"`
-	UpdatedAt      time.Time       `bson:"updatedAt" json:"updatedAt"`
+	ID            bson.ObjectID   `bson:"_id,omitempty" json:"id"`
+	Title         string          `bson:"title" json:"title"`
+	Description   string          `bson:"description" json:"description"`
+	SubjectID     bson.ObjectID   `bson:"subjectId" json:"subjectId"`
+	ClassIDs      []bson.ObjectID `bson:"classIds" json:"classIds"`
+	Deadline      time.Time       `bson:"deadline" json:"deadline"`
+	Attachments   []FileRef       `bson:"attachments" json:"attachments"`
+	AllowResubmit bool            `bson:"allowResubmit" json:"allowResubmit"`
+	TeacherID     bson.ObjectID   `bson:"teacherId" json:"teacherId"`
+	CreatedAt     time.Time       `bson:"createdAt" json:"createdAt"`
+	UpdatedAt     time.Time       `bson:"updatedAt" json:"updatedAt"`
 }
 
 type AssignmentSubmission struct {

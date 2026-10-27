@@ -6,9 +6,9 @@ import (
 
 	"github.com/geniussociety/backend/internal/config"
 	"github.com/geniussociety/backend/internal/repository"
-	"github.com/geniussociety/backend/routes"
 	"github.com/geniussociety/backend/internal/service"
 	"github.com/geniussociety/backend/internal/storage"
+	"github.com/geniussociety/backend/routes"
 )
 
 func main() {
@@ -37,6 +37,11 @@ func main() {
 	studentManagementSvc := service.NewStudentManagementService(studentRepo, userRepo, classRepo, db)
 	teacherManagementSvc := service.NewTeacherManagementService(teacherRepo, userRepo, classRepo, db)
 	subjectManagementSvc := service.NewSubjectManagementService(subjectRepo, teacherRepo, db)
+	// Academic Year service (Admin scoped)
+	academicYearSvc := service.NewAcademicYearService(repository.NewAcademicYearRepository(db))
+
+	// Class management service
+	classManagementSvc := service.NewClassService(classRepo)
 
 	// Storage (B2) — optional: log warning if not configured
 	b2, err := storage.NewB2Storage(cfg)
@@ -49,7 +54,7 @@ func main() {
 	_ = b2 // will be injected into future handlers
 
 	// Router
-	r := routes.Setup(cfg, authSvc, userSvc, adminDashboardSvc, studentManagementSvc, teacherManagementSvc, subjectManagementSvc)
+	r := routes.Setup(cfg, authSvc, userSvc, adminDashboardSvc, studentManagementSvc, teacherManagementSvc, subjectManagementSvc, classManagementSvc, academicYearSvc, userRepo)
 
 	addr := fmt.Sprintf(":%s", cfg.Port)
 	log.Printf("Server starting on %s (env: %s)", addr, cfg.AppEnv)

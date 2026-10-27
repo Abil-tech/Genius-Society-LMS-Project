@@ -4,11 +4,11 @@ import (
 	"net/http"
 	"time"
 
-	"github.com/gin-gonic/gin"
 	"github.com/geniussociety/backend/internal/config"
 	"github.com/geniussociety/backend/internal/dto"
 	"github.com/geniussociety/backend/internal/middleware"
 	"github.com/geniussociety/backend/internal/service"
+	"github.com/gin-gonic/gin"
 )
 
 type AuthHandler struct {
