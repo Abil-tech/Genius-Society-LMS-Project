@@ -18,4 +18,5 @@ type Schedule struct {
 	Room           string        `bson:"room" json:"room"`
 	CreatedAt      time.Time     `bson:"createdAt" json:"createdAt"`
 	UpdatedAt      time.Time     `bson:"updatedAt" json:"updatedAt"`
+	SchoolID       bson.ObjectID `bson:"schoolId,omitempty" json:"schoolId,omitempty"`
 }

@@ -13,6 +13,7 @@ type ClassStudent struct {
 	AcademicYearID bson.ObjectID `bson:"academicYearId" json:"academicYearId"`
 	CreatedAt      time.Time     `bson:"createdAt" json:"createdAt"`
 	UpdatedAt      time.Time     `bson:"updatedAt" json:"updatedAt"`
+	SchoolID       bson.ObjectID `bson:"schoolId,omitempty" json:"schoolId,omitempty"`
 }
 
 type TeacherSubject struct {
@@ -21,6 +22,7 @@ type TeacherSubject struct {
 	SubjectID bson.ObjectID `bson:"subjectId" json:"subjectId"`
 	CreatedAt time.Time     `bson:"createdAt" json:"createdAt"`
 	UpdatedAt time.Time     `bson:"updatedAt" json:"updatedAt"`
+	SchoolID  bson.ObjectID `bson:"schoolId,omitempty" json:"schoolId,omitempty"`
 }
 
 type TeacherClass struct {
@@ -31,4 +33,5 @@ type TeacherClass struct {
 	AcademicYearID bson.ObjectID `bson:"academicYearId" json:"academicYearId"`
 	CreatedAt      time.Time     `bson:"createdAt" json:"createdAt"`
 	UpdatedAt      time.Time     `bson:"updatedAt" json:"updatedAt"`
+	SchoolID       bson.ObjectID `bson:"schoolId,omitempty" json:"schoolId,omitempty"`
 }

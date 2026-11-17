@@ -1,6 +1,7 @@
 package main
 
 import (
+	"context"
 	"fmt"
 	"log"
 
@@ -22,6 +23,7 @@ func main() {
 		log.Fatalf("mongodb connection error: %v", err)
 	}
 	log.Println("Connected to MongoDB:", cfg.MongoDB)
+	_ = config.EnsureTeacherIndexes(context.Background(), db)
 
 	// Repositories
 	userRepo := repository.NewUserRepository(db)

@@ -182,6 +182,7 @@ func Setup(
 		users.DELETE("/:id", middleware.RequireRoles(model.RoleSuperAdmin, model.RoleAdmin), userHandler.Delete)
 	}
 
+	RegisterTeacher(protected)
 
 	// Health check
 	r.GET("/health", func(c *gin.Context) {

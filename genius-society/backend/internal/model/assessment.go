@@ -43,6 +43,11 @@ type Assessment struct {
 	Status          AssessmentStatus   `bson:"status" json:"status"`
 	CreatedAt       time.Time          `bson:"createdAt" json:"createdAt"`
 	UpdatedAt       time.Time          `bson:"updatedAt" json:"updatedAt"`
+	SchoolID          bson.ObjectID      `bson:"schoolId,omitempty" json:"schoolId,omitempty"`
+	MaxAttempts       int                `bson:"maxAttempts,omitempty" json:"maxAttempts,omitempty"`
+	ShowResultMode    string             `bson:"showResultMode,omitempty" json:"showResultMode,omitempty"`
+	ShuffleQuestions  bool               `bson:"shuffleQuestions,omitempty" json:"shuffleQuestions,omitempty"`
+	LearningOutcomeID *bson.ObjectID     `bson:"learningOutcomeId,omitempty" json:"learningOutcomeId,omitempty"`
 }
 
 type AssessmentQuestion struct {
@@ -56,6 +61,7 @@ type AssessmentQuestion struct {
 	Order         int           `bson:"order" json:"order"`
 	CreatedAt     time.Time     `bson:"createdAt" json:"createdAt"`
 	UpdatedAt     time.Time     `bson:"updatedAt" json:"updatedAt"`
+	SchoolID      bson.ObjectID `bson:"schoolId,omitempty" json:"schoolId,omitempty"`
 }
 
 type AssessmentAttempt struct {
@@ -71,6 +77,8 @@ type AssessmentAttempt struct {
 	TotalScore   float64       `bson:"totalScore" json:"totalScore"`
 	CreatedAt    time.Time     `bson:"createdAt" json:"createdAt"`
 	UpdatedAt    time.Time     `bson:"updatedAt" json:"updatedAt"`
+	SchoolID      bson.ObjectID `bson:"schoolId,omitempty" json:"schoolId,omitempty"`
+	AttemptNumber int           `bson:"attemptNumber,omitempty" json:"attemptNumber,omitempty"`
 }
 
 type AssessmentAnswer struct {
@@ -83,4 +91,5 @@ type AssessmentAnswer struct {
 	Feedback   string        `bson:"feedback,omitempty" json:"feedback,omitempty"`
 	CreatedAt  time.Time     `bson:"createdAt" json:"createdAt"`
 	UpdatedAt  time.Time     `bson:"updatedAt" json:"updatedAt"`
+	SchoolID   bson.ObjectID `bson:"schoolId,omitempty" json:"schoolId,omitempty"`
 }

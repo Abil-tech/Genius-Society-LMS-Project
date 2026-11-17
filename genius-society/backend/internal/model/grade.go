@@ -29,6 +29,10 @@ type Grade struct {
 	Score          float64       `bson:"score" json:"score"`
 	CreatedAt      time.Time     `bson:"createdAt" json:"createdAt"`
 	UpdatedAt      time.Time     `bson:"updatedAt" json:"updatedAt"`
+	SchoolID       bson.ObjectID `bson:"schoolId,omitempty" json:"schoolId,omitempty"`
+	Source         string        `bson:"source,omitempty" json:"source,omitempty"` // submission | manual
+	Reason         string        `bson:"reason,omitempty" json:"reason,omitempty"`
+	GradedBy       bson.ObjectID `bson:"gradedBy,omitempty" json:"gradedBy,omitempty"`
 }
 
 type GradingConfig struct {
@@ -40,4 +44,7 @@ type GradingConfig struct {
 	UASWeight      float64        `bson:"uasWeight" json:"uasWeight"`                     // default 20
 	CreatedAt      time.Time      `bson:"createdAt" json:"createdAt"`
 	UpdatedAt      time.Time      `bson:"updatedAt" json:"updatedAt"`
+	SchoolID       bson.ObjectID  `bson:"schoolId,omitempty" json:"schoolId,omitempty"`
+	OutcomeWeight  float64        `bson:"outcomeWeight,omitempty" json:"outcomeWeight,omitempty"`
+	StsWeight      float64        `bson:"stsWeight,omitempty" json:"stsWeight,omitempty"`
 }

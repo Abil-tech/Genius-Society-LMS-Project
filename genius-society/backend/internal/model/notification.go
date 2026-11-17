@@ -18,4 +18,5 @@ type Notification struct {
 	ReadAt    *time.Time     `bson:"readAt,omitempty" json:"readAt,omitempty"`
 	CreatedAt time.Time      `bson:"createdAt" json:"createdAt"`
 	UpdatedAt time.Time      `bson:"updatedAt" json:"updatedAt"`
+	SchoolID  bson.ObjectID  `bson:"schoolId,omitempty" json:"schoolId,omitempty"`
 }
