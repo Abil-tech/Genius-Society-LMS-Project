@@ -24,6 +24,7 @@ func main() {
 	}
 	log.Println("Connected to MongoDB:", cfg.MongoDB)
 	_ = config.EnsureTeacherIndexes(context.Background(), db)
+	routes.InitTeacher(db)
 
 	// Repositories
 	userRepo := repository.NewUserRepository(db)

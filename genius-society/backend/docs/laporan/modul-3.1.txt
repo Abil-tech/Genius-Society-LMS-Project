@@ -1,0 +1,119 @@
+﻿=== GO BUILD ===
+=== GO VET ===
+=== GO TEST ===
+?   	github.com/geniussociety/backend/cmd	[no test files]
+?   	github.com/geniussociety/backend/cmd/seed	[no test files]
+?   	github.com/geniussociety/backend/cmd/seed-teacher	[no test files]
+?   	github.com/geniussociety/backend/internal/config	[no test files]
+?   	github.com/geniussociety/backend/internal/dto	[no test files]
+=== RUN   TestSetSchoolID_Success
+[GIN-debug] [WARNING] Running in "debug" mode. Switch to "release" mode in production.
+ - using env:	export GIN_MODE=release
+ - using code:	gin.SetMode(gin.ReleaseMode)
+
+[GIN-debug] GET    /test                     --> github.com/geniussociety/backend/internal/handler.TestSetSchoolID_Success.func2 (3 handlers)
+--- PASS: TestSetSchoolID_Success (0.00s)
+=== RUN   TestSetSchoolID_NoSchool
+[GIN-debug] [WARNING] Running in "debug" mode. Switch to "release" mode in production.
+ - using env:	export GIN_MODE=release
+ - using code:	gin.SetMode(gin.ReleaseMode)
+
+[GIN-debug] GET    /test                     --> github.com/geniussociety/backend/internal/handler.TestSetSchoolID_NoSchool.func2 (3 handlers)
+--- PASS: TestSetSchoolID_NoSchool (0.00s)
+=== RUN   TestCreateClass_IgnoresHeaderSchoolID
+--- PASS: TestCreateClass_IgnoresHeaderSchoolID (0.00s)
+=== RUN   TestRequireRoles_AdminOnly
+--- PASS: TestRequireRoles_AdminOnly (0.00s)
+=== RUN   TestClassManagementHandler_RBAC_SuperAdminAndPrincipalBlocked
+--- PASS: TestClassManagementHandler_RBAC_SuperAdminAndPrincipalBlocked (0.00s)
+=== RUN   TestClassManagementHandler_FullCRUD_AdminSuccess
+--- PASS: TestClassManagementHandler_FullCRUD_AdminSuccess (0.00s)
+PASS
+ok  	github.com/geniussociety/backend/internal/handler	0.402s
+=== RUN   TestSetSchoolID_Unauthenticated
+--- PASS: TestSetSchoolID_Unauthenticated (0.00s)
+=== RUN   TestSetSchoolID_InvalidUserID
+--- PASS: TestSetSchoolID_InvalidUserID (0.00s)
+=== RUN   TestSetSchoolID_DBLookupError
+--- PASS: TestSetSchoolID_DBLookupError (0.00s)
+=== RUN   TestSetSchoolID_UserNotFoundOrZeroSchoolID
+--- PASS: TestSetSchoolID_UserNotFoundOrZeroSchoolID (0.00s)
+=== RUN   TestSetSchoolID_CannotBeOverriddenByClientHeader
+--- PASS: TestSetSchoolID_CannotBeOverriddenByClientHeader (0.00s)
+=== RUN   TestTeacherScope_HelperMethods
+--- PASS: TestTeacherScope_HelperMethods (0.00s)
+=== RUN   TestTeacherScopeMiddleware_InactiveUser
+--- PASS: TestTeacherScopeMiddleware_InactiveUser (0.00s)
+=== RUN   TestTeacherScopeMiddleware_ActiveTeacherSuccess
+--- PASS: TestTeacherScopeMiddleware_ActiveTeacherSuccess (0.00s)
+PASS
+ok  	github.com/geniussociety/backend/internal/middleware	0.394s
+?   	github.com/geniussociety/backend/internal/model	[no test files]
+?   	github.com/geniussociety/backend/internal/repository	[no test files]
+=== RUN   TestIsFinalGradeClass
+=== RUN   TestIsFinalGradeClass/12_MIPA_1
+=== RUN   TestIsFinalGradeClass/Kelas_XII_IPS_2
+=== RUN   TestIsFinalGradeClass/Kelas_12_Unggulan
+=== RUN   TestIsFinalGradeClass/9A_SMP
+=== RUN   TestIsFinalGradeClass/Kelas_9_B
+=== RUN   TestIsFinalGradeClass/Kelas_6_SD
+=== RUN   TestIsFinalGradeClass/Kelas_VI_B
+=== RUN   TestIsFinalGradeClass/10_MIPA_1
+=== RUN   TestIsFinalGradeClass/Kelas_XI_IPS_2
+=== RUN   TestIsFinalGradeClass/Kelas_7_A
+=== RUN   TestIsFinalGradeClass/Kelas_VII_A
+=== RUN   TestIsFinalGradeClass/Kelas_8_B
+=== RUN   TestIsFinalGradeClass/Kelas_VIII_C
+=== RUN   TestIsFinalGradeClass/Kelas_1_SD
+=== RUN   TestIsFinalGradeClass/11_MIPA_1
+--- PASS: TestIsFinalGradeClass (0.00s)
+    --- PASS: TestIsFinalGradeClass/12_MIPA_1 (0.00s)
+    --- PASS: TestIsFinalGradeClass/Kelas_XII_IPS_2 (0.00s)
+    --- PASS: TestIsFinalGradeClass/Kelas_12_Unggulan (0.00s)
+    --- PASS: TestIsFinalGradeClass/9A_SMP (0.00s)
+    --- PASS: TestIsFinalGradeClass/Kelas_9_B (0.00s)
+    --- PASS: TestIsFinalGradeClass/Kelas_6_SD (0.00s)
+    --- PASS: TestIsFinalGradeClass/Kelas_VI_B (0.00s)
+    --- PASS: TestIsFinalGradeClass/10_MIPA_1 (0.00s)
+    --- PASS: TestIsFinalGradeClass/Kelas_XI_IPS_2 (0.00s)
+    --- PASS: TestIsFinalGradeClass/Kelas_7_A (0.00s)
+    --- PASS: TestIsFinalGradeClass/Kelas_VII_A (0.00s)
+    --- PASS: TestIsFinalGradeClass/Kelas_8_B (0.00s)
+    --- PASS: TestIsFinalGradeClass/Kelas_VIII_C (0.00s)
+    --- PASS: TestIsFinalGradeClass/Kelas_1_SD (0.00s)
+    --- PASS: TestIsFinalGradeClass/11_MIPA_1 (0.00s)
+=== RUN   TestClassService_SchoolIsolation
+--- PASS: TestClassService_SchoolIsolation (0.00s)
+PASS
+ok  	github.com/geniussociety/backend/internal/service	0.232s
+=== RUN   TestSanitizeFilename
+--- PASS: TestSanitizeFilename (0.00s)
+=== RUN   TestValidateFileCount
+--- PASS: TestValidateFileCount (0.00s)
+=== RUN   TestB2StorageAdapter_Unconfigured
+--- PASS: TestB2StorageAdapter_Unconfigured (0.00s)
+=== RUN   TestResolveAndValidateMime
+--- PASS: TestResolveAndValidateMime (0.00s)
+PASS
+ok  	github.com/geniussociety/backend/internal/storage	0.198s
+=== RUN   TestHandler_ListClasses
+--- PASS: TestHandler_ListClasses (0.00s)
+=== RUN   TestHandler_GetClassDetail_InvalidID
+--- PASS: TestHandler_GetClassDetail_InvalidID (0.00s)
+=== RUN   TestHandler_GetClassDetail_NotFound
+--- PASS: TestHandler_GetClassDetail_NotFound (0.00s)
+=== RUN   TestHandler_ListClassStudents_Success
+--- PASS: TestHandler_ListClassStudents_Success (0.00s)
+=== RUN   TestGetClasses
+--- PASS: TestGetClasses (0.00s)
+=== RUN   TestGetClassDetail_AccessControl
+--- PASS: TestGetClassDetail_AccessControl (0.00s)
+=== RUN   TestGetClassStudents_BulkUserLookupAndAccountFlag
+--- PASS: TestGetClassStudents_BulkUserLookupAndAccountFlag (0.00s)
+PASS
+ok  	github.com/geniussociety/backend/internal/teacher	0.394s
+?   	github.com/geniussociety/backend/routes	[no test files]
+=== GIT DIFF NUMSTAT ===
+1	0	genius-society/backend/cmd/main.go
+10	0	genius-society/backend/internal/handler/teacher_error_helper.go
+31	5	genius-society/backend/routes/teacher_routes.go

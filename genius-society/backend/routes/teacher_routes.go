@@ -1,14 +1,40 @@
 package routes
 
 import (
+	"github.com/geniussociety/backend/internal/middleware"
+	"github.com/geniussociety/backend/internal/model"
+	"github.com/geniussociety/backend/internal/repository"
+	"github.com/geniussociety/backend/internal/teacher"
 	"github.com/gin-gonic/gin"
+	"go.mongodb.org/mongo-driver/v2/mongo"
 )
 
+var teacherDB *mongo.Database
+
+// InitTeacher initializes the database connection for teacher routes.
+func InitTeacher(db *mongo.Database) {
+	teacherDB = db
+}
+
 // RegisterTeacher registers all routes for the Teacher portal.
-// As defined in project specifications, this entrypoint is wired in routes.Setup
-// and will be populated across Modules 3.1 through 3.10.
 func RegisterTeacher(protected *gin.RouterGroup) {
-	// Root group for teacher endpoints
-	// Sub-routes will be attached in respective modules (3.1 - 3.10)
-	_ = protected
+	if teacherDB == nil {
+		return
+	}
+
+	scopeRepo := repository.NewTeacherScopeRepository(teacherDB)
+	classRepo := teacher.NewClassRepository(teacherDB)
+	classSvc := teacher.NewClassService(classRepo)
+	classHandler := teacher.NewClassHandler(classSvc)
+
+	teacherGroup := protected.Group("/teacher")
+	teacherGroup.Use(middleware.RequireRoles(model.RoleTeacher))
+	teacherGroup.Use(middleware.TeacherScopeMiddleware(scopeRepo))
+	{
+		// Modul 3.1: Classes & Students
+		teacherGroup.GET("/classes", classHandler.ListClasses)
+		teacherGroup.GET("/classes/:id", classHandler.GetClassDetail)
+		teacherGroup.GET("/classes/:id/students", classHandler.ListClassStudents)
+		teacherGroup.GET("/subjects", classHandler.ListTeacherSubjects)
+	}
 }

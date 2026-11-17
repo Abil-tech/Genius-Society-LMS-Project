@@ -87,6 +87,16 @@ func NewValidationError(message string) *DomainError {
 	}
 }
 
+// RespondError exports respondError for use across teacher packages.
+func RespondError(c *gin.Context, err error) {
+	respondError(c, err)
+}
+
+// BindError exports bindError for use across teacher packages.
+func BindError(c *gin.Context, err error) {
+	bindError(c, err)
+}
+
 // respondError maps domain errors to proper HTTP status and dto.ErrorBody.
 // Unknown errors are logged and answered with safe "Terjadi kesalahan internal pada server".
 func respondError(c *gin.Context, err error) {
