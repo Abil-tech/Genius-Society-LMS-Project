@@ -51,6 +51,10 @@ func RegisterTeacher(protected *gin.RouterGroup) {
 	assignmentSvc := teacher.NewAssignmentService(assignmentRepo, st, notifSvc, notifRepo)
 	assignmentHandler := teacher.NewAssignmentHandler(assignmentSvc)
 
+	projectRepo := teacher.NewProjectRepository(teacherDB)
+	projectSvc := teacher.NewProjectService(projectRepo, st, notifSvc, notifRepo)
+	projectHandler := teacher.NewProjectHandler(projectSvc)
+
 	// Modul 3.2: Notifications (all authenticated users)
 	notifications := protected.Group("/notifications")
 	{
@@ -88,5 +92,16 @@ func RegisterTeacher(protected *gin.RouterGroup) {
 		teacherGroup.GET("/assignments/:id/submissions", assignmentHandler.ListSubmissions)
 		teacherGroup.PUT("/assignments/:id/submissions/:submissionId/grade", assignmentHandler.GradeSubmission)
 		teacherGroup.POST("/assignments/:id/submit", assignmentHandler.SubmitAssignment)
+
+		// Modul 3.5: Projects
+		teacherGroup.GET("/projects", projectHandler.ListProjects)
+		teacherGroup.POST("/projects", projectHandler.CreateProject)
+		teacherGroup.GET("/projects/:id", projectHandler.GetProjectDetail)
+		teacherGroup.PUT("/projects/:id", projectHandler.UpdateProject)
+		teacherGroup.DELETE("/projects/:id", projectHandler.DeleteProject)
+		teacherGroup.GET("/projects/:id/files/:index/download", projectHandler.DownloadFile)
+		teacherGroup.GET("/projects/:id/submissions", projectHandler.ListSubmissions)
+		teacherGroup.PUT("/projects/:id/submissions/:submissionId/grade", projectHandler.GradeSubmission)
+		teacherGroup.POST("/projects/:id/submit", projectHandler.SubmitProject)
 	}
 }

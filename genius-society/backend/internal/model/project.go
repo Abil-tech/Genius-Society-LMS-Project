@@ -35,4 +35,5 @@ type ProjectSubmission struct {
 	CreatedAt   time.Time     `bson:"createdAt" json:"createdAt"`
 	UpdatedAt   time.Time     `bson:"updatedAt" json:"updatedAt"`
 	SchoolID    bson.ObjectID `bson:"schoolId,omitempty" json:"schoolId,omitempty"`
+	GradedAt    *time.Time    `bson:"gradedAt,omitempty" json:"gradedAt,omitempty"`
 }
