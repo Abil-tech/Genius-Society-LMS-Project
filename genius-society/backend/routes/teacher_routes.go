@@ -55,6 +55,10 @@ func RegisterTeacher(protected *gin.RouterGroup) {
 	projectSvc := teacher.NewProjectService(projectRepo, st, notifSvc, notifRepo)
 	projectHandler := teacher.NewProjectHandler(projectSvc)
 
+	assessmentRepo := teacher.NewAssessmentRepository(teacherDB)
+	assessmentSvc := teacher.NewAssessmentService(assessmentRepo, notifSvc, notifRepo)
+	assessmentHandler := teacher.NewAssessmentHandler(assessmentSvc)
+
 	// Modul 3.2: Notifications (all authenticated users)
 	notifications := protected.Group("/notifications")
 	{
@@ -103,5 +107,24 @@ func RegisterTeacher(protected *gin.RouterGroup) {
 		teacherGroup.GET("/projects/:id/submissions", projectHandler.ListSubmissions)
 		teacherGroup.PUT("/projects/:id/submissions/:submissionId/grade", projectHandler.GradeSubmission)
 		teacherGroup.POST("/projects/:id/submit", projectHandler.SubmitProject)
+
+		// Modul 3.6: Assessments
+		teacherGroup.GET("/assessments", assessmentHandler.ListAssessments)
+		teacherGroup.POST("/assessments", assessmentHandler.CreateAssessment)
+		teacherGroup.GET("/assessments/:id", assessmentHandler.GetAssessmentDetail)
+		teacherGroup.PUT("/assessments/:id", assessmentHandler.UpdateAssessment)
+		teacherGroup.DELETE("/assessments/:id", assessmentHandler.DeleteAssessment)
+		teacherGroup.POST("/assessments/:id/questions", assessmentHandler.AddQuestion)
+		teacherGroup.PUT("/assessments/:id/questions/:questionId", assessmentHandler.UpdateQuestion)
+		teacherGroup.DELETE("/assessments/:id/questions/:questionId", assessmentHandler.DeleteQuestion)
+		teacherGroup.PUT("/assessments/:id/questions/reorder", assessmentHandler.ReorderQuestions)
+		teacherGroup.POST("/assessments/:id/regrade-mcq", assessmentHandler.RegradeMCQ)
+		teacherGroup.POST("/assessments/:id/publish", assessmentHandler.PublishAssessment)
+		teacherGroup.POST("/assessments/:id/close", assessmentHandler.CloseAssessment)
+		teacherGroup.GET("/assessments/:id/attempts", assessmentHandler.ListAttempts)
+		teacherGroup.GET("/assessments/:id/attempts/:attemptId", assessmentHandler.GetAttemptDetail)
+		teacherGroup.PUT("/assessments/:id/answers/:answerId/grade", assessmentHandler.GradeEssayAnswer)
+		teacherGroup.POST("/assessments/:id/start", assessmentHandler.StartAssessment)
+		teacherGroup.POST("/assessments/:id/submit", assessmentHandler.SubmitAssessment)
 	}
 }
