@@ -27,4 +27,5 @@ type Material struct {
 	CreatedAt   time.Time       `bson:"createdAt" json:"createdAt"`
 	UpdatedAt   time.Time       `bson:"updatedAt" json:"updatedAt"`
 	SchoolID    bson.ObjectID   `bson:"schoolId,omitempty" json:"schoolId,omitempty"`
+	Attachments []FileRef       `bson:"attachments,omitempty" json:"attachments,omitempty"`
 }

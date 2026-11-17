@@ -69,6 +69,7 @@ func main() {
 	} else {
 		log.Println("B2 storage initialized:", cfg.B2BucketName)
 	}
+	routes.InitTeacherStorage(storage.NewFileStorage(b2))
 	_ = b2 // will be injected into future handlers
 
 	// Router
