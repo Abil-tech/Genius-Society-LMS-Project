@@ -160,12 +160,10 @@ schoolRepo := repository.NewSchoolRepository(db)
 					IsActive:     true,
 				}
 
-				// Assign school ID to Admin (and SuperAdmin if you want)
-				if su.Role == model.RoleAdmin {
+				// Assign demo school ID to all school-scoped users
+				if su.Role != model.RoleSuperAdmin {
 					u.SchoolID = demoSchoolID
-				}
-				if su.Role == model.RoleSuperAdmin {
-					// SuperAdmin does not need a school, but you may still set one for completeness.
+				} else {
 					u.SchoolID = demoSchoolID
 				}
 
@@ -180,13 +178,13 @@ schoolRepo := repository.NewSchoolRepository(db)
 				continue
 			}
 
-			// ----- UPDATE existing user when they lack a SchoolID (admin migration) -----
-			if su.Role == model.RoleAdmin && existing.SchoolID.IsZero() {
+			// ----- UPDATE existing user when they lack a SchoolID -----
+			if existing.SchoolID.IsZero() {
 				// Set the proper SchoolID via an update call
 				if err := userRepo.UpdateSchoolID(ctx, existing.ID, demoSchoolID); err != nil {
-					log.Printf("failed to set schoolId for admin %s: %v", su.Username, err)
+					log.Printf("failed to set schoolId for user %s: %v", su.Username, err)
 				} else {
-					log.Printf("admin %s patched with schoolId %s", su.Username, demoSchoolID.Hex())
+					log.Printf("user %s patched with schoolId %s", su.Username, demoSchoolID.Hex())
 				}
 			}
 		}
