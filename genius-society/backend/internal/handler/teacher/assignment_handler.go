@@ -6,6 +6,7 @@ import (
 	"net/http"
 	"strconv"
 	"strings"
+	"time"
 
 	teacherdto "github.com/geniussociety/backend/internal/dto/teacher"
 	"github.com/geniussociety/backend/internal/handler"
@@ -96,10 +97,35 @@ func (h *AssignmentHandler) CreateAssignment(c *gin.Context) {
 				handler.RespondError(c, handler.NewValidationError("Payload JSON pada field data tidak valid"))
 				return
 			}
+		} else {
+			// Frontend sends individual form fields.
+			payload.Title = strings.TrimSpace(c.PostForm("title"))
+			payload.Description = strings.TrimSpace(c.PostForm("description"))
+			payload.SubjectID = strings.TrimSpace(c.PostForm("subjectId"))
+			if ar := strings.TrimSpace(c.PostForm("allowResubmit")); ar == "true" {
+				payload.AllowResubmit = true
+			}
+			if form != nil && form.Value != nil {
+				payload.ClassIDs = form.Value["classIds"]
+			}
+			if dlStr := strings.TrimSpace(c.PostForm("deadline")); dlStr != "" {
+				t, err := time.Parse(time.RFC3339, dlStr)
+				if err != nil {
+					t, err = time.Parse("2006-01-02T15:04:05Z07:00", dlStr)
+				}
+				if err != nil {
+					t, err = time.Parse("2006-01-02T15:04", dlStr)
+				}
+				if err == nil {
+					payload.Deadline = t.UTC()
+				}
+			}
 		}
 
 		if form != nil && form.File != nil {
-			if fList, ok := form.File["files"]; ok {
+			if fList, ok := form.File["attachments"]; ok {
+				files = fList
+			} else if fList, ok := form.File["files"]; ok {
 				files = fList
 			} else if fList, ok := form.File["file"]; ok {
 				files = fList
@@ -152,10 +178,42 @@ func (h *AssignmentHandler) UpdateAssignment(c *gin.Context) {
 				handler.RespondError(c, handler.NewValidationError("Payload JSON pada field data tidak valid"))
 				return
 			}
+		} else {
+			// Frontend sends individual form fields.
+			if v := strings.TrimSpace(c.PostForm("title")); v != "" {
+				payload.Title = v
+			}
+			if v := strings.TrimSpace(c.PostForm("description")); v != "" {
+				payload.Description = v
+			}
+			if form != nil && form.Value != nil {
+				if cids, ok := form.Value["classIds"]; ok && len(cids) > 0 {
+					payload.ClassIDs = cids
+				}
+			}
+			if ar := strings.TrimSpace(c.PostForm("allowResubmit")); ar != "" {
+				b := ar == "true"
+				payload.AllowResubmit = &b
+			}
+			if dlStr := strings.TrimSpace(c.PostForm("deadline")); dlStr != "" {
+				t, err := time.Parse(time.RFC3339, dlStr)
+				if err != nil {
+					t, err = time.Parse("2006-01-02T15:04:05Z07:00", dlStr)
+				}
+				if err != nil {
+					t, err = time.Parse("2006-01-02T15:04", dlStr)
+				}
+				if err == nil {
+					utc := t.UTC()
+					payload.Deadline = &utc
+				}
+			}
 		}
 
 		if form != nil && form.File != nil {
-			if fList, ok := form.File["files"]; ok {
+			if fList, ok := form.File["attachments"]; ok {
+				files = fList
+			} else if fList, ok := form.File["files"]; ok {
 				files = fList
 			} else if fList, ok := form.File["file"]; ok {
 				files = fList

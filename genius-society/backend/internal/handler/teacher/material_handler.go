@@ -6,6 +6,7 @@ import (
 	"net/http"
 	"strconv"
 	"strings"
+	"time"
 
 	teacherdto "github.com/geniussociety/backend/internal/dto/teacher"
 	"github.com/geniussociety/backend/internal/handler"
@@ -92,20 +93,42 @@ func (h *MaterialHandler) CreateMaterial(c *gin.Context) {
 		}
 
 		jsonData := c.PostForm("data")
-		if jsonData == "" {
-			// Try fallback direct form values
-			payload.Title = c.PostForm("title")
-			payload.Description = c.PostForm("description")
-			payload.SubjectID = c.PostForm("subjectId")
-			payload.Link = c.PostForm("link")
-			payload.PublishNow = c.PostForm("publishNow") == "true"
-			if classIDsStr := c.PostForm("classIds"); classIDsStr != "" {
-				payload.ClassIDs = strings.Split(classIDsStr, ",")
-			}
-		} else {
+		if jsonData != "" {
 			if err := json.Unmarshal([]byte(jsonData), &payload); err != nil {
 				handler.RespondError(c, handler.NewValidationError("Payload JSON pada field data tidak valid"))
 				return
+			}
+		} else {
+			// Frontend sends individual form values
+			payload.Title = strings.TrimSpace(c.PostForm("title"))
+			payload.Description = strings.TrimSpace(c.PostForm("description"))
+			payload.SubjectID = strings.TrimSpace(c.PostForm("subjectId"))
+			payload.Link = strings.TrimSpace(c.PostForm("link"))
+			payload.PublishNow = c.PostForm("publishNow") == "true"
+
+			if form != nil && form.Value != nil {
+				if cids, ok := form.Value["classIds"]; ok && len(cids) > 0 {
+					payload.ClassIDs = cids
+				}
+			}
+			if len(payload.ClassIDs) == 0 {
+				if classIDsStr := strings.TrimSpace(c.PostForm("classIds")); classIDsStr != "" {
+					payload.ClassIDs = strings.Split(classIDsStr, ",")
+				}
+			}
+
+			if pubStr := strings.TrimSpace(c.PostForm("publishAt")); pubStr != "" {
+				t, err := time.Parse(time.RFC3339, pubStr)
+				if err != nil {
+					t, err = time.Parse("2006-01-02T15:04:05Z07:00", pubStr)
+				}
+				if err != nil {
+					t, err = time.Parse("2006-01-02T15:04", pubStr)
+				}
+				if err == nil {
+					utc := t.UTC()
+					payload.PublishAt = &utc
+				}
 			}
 		}
 
@@ -162,6 +185,44 @@ func (h *MaterialHandler) UpdateMaterial(c *gin.Context) {
 			if err := json.Unmarshal([]byte(jsonData), &payload); err != nil {
 				handler.RespondError(c, handler.NewValidationError("Payload JSON pada field data tidak valid"))
 				return
+			}
+		} else {
+			// Frontend sends individual form fields
+			if v := strings.TrimSpace(c.PostForm("title")); v != "" {
+				payload.Title = v
+			}
+			if v := strings.TrimSpace(c.PostForm("description")); v != "" {
+				payload.Description = v
+			}
+			if v := strings.TrimSpace(c.PostForm("link")); v != "" {
+				payload.Link = v
+			}
+			if form != nil && form.Value != nil {
+				if cids, ok := form.Value["classIds"]; ok && len(cids) > 0 {
+					payload.ClassIDs = cids
+				}
+			}
+			if len(payload.ClassIDs) == 0 {
+				if classIDsStr := strings.TrimSpace(c.PostForm("classIds")); classIDsStr != "" {
+					payload.ClassIDs = strings.Split(classIDsStr, ",")
+				}
+			}
+			if pnStr := strings.TrimSpace(c.PostForm("publishNow")); pnStr != "" {
+				pn := pnStr == "true"
+				payload.PublishNow = &pn
+			}
+			if pubStr := strings.TrimSpace(c.PostForm("publishAt")); pubStr != "" {
+				t, err := time.Parse(time.RFC3339, pubStr)
+				if err != nil {
+					t, err = time.Parse("2006-01-02T15:04:05Z07:00", pubStr)
+				}
+				if err != nil {
+					t, err = time.Parse("2006-01-02T15:04", pubStr)
+				}
+				if err == nil {
+					utc := t.UTC()
+					payload.PublishAt = &utc
+				}
 			}
 		}
 
