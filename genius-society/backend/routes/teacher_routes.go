@@ -1,11 +1,13 @@
 package routes
 
 import (
+	teacherhandler "github.com/geniussociety/backend/internal/handler/teacher"
 	"github.com/geniussociety/backend/internal/middleware"
 	"github.com/geniussociety/backend/internal/model"
 	"github.com/geniussociety/backend/internal/repository"
+	teacherrepo "github.com/geniussociety/backend/internal/repository/teacher"
+	teachersvc "github.com/geniussociety/backend/internal/service/teacher"
 	"github.com/geniussociety/backend/internal/storage"
-	"github.com/geniussociety/backend/internal/teacher"
 	"github.com/gin-gonic/gin"
 	"go.mongodb.org/mongo-driver/v2/mongo"
 )
@@ -30,34 +32,34 @@ func RegisterTeacher(protected *gin.RouterGroup) {
 	}
 
 	scopeRepo := repository.NewTeacherScopeRepository(teacherDB)
-	classRepo := teacher.NewClassRepository(teacherDB)
-	classSvc := teacher.NewClassService(classRepo)
-	classHandler := teacher.NewClassHandler(classSvc)
+	classRepo := teacherrepo.NewClassRepository(teacherDB)
+	classSvc := teachersvc.NewClassService(classRepo)
+	classHandler := teacherhandler.NewClassHandler(classSvc)
 
-	notifRepo := teacher.NewNotificationRepository(teacherDB)
-	notifSvc := teacher.NewNotificationService(notifRepo)
-	notifHandler := teacher.NewNotificationHandler(notifSvc)
+	notifRepo := teacherrepo.NewNotificationRepository(teacherDB)
+	notifSvc := teachersvc.NewNotificationService(notifRepo)
+	notifHandler := teacherhandler.NewNotificationHandler(notifSvc)
 
 	st := teacherStorage
 	if st == nil {
 		st = storage.NewFileStorage(nil)
 	}
 
-	materialRepo := teacher.NewMaterialRepository(teacherDB)
-	materialSvc := teacher.NewMaterialService(materialRepo, st, notifSvc)
-	materialHandler := teacher.NewMaterialHandler(materialSvc)
+	materialRepo := teacherrepo.NewMaterialRepository(teacherDB)
+	materialSvc := teachersvc.NewMaterialService(materialRepo, st, notifSvc)
+	materialHandler := teacherhandler.NewMaterialHandler(materialSvc)
 
-	assignmentRepo := teacher.NewAssignmentRepository(teacherDB)
-	assignmentSvc := teacher.NewAssignmentService(assignmentRepo, st, notifSvc, notifRepo)
-	assignmentHandler := teacher.NewAssignmentHandler(assignmentSvc)
+	assignmentRepo := teacherrepo.NewAssignmentRepository(teacherDB)
+	assignmentSvc := teachersvc.NewAssignmentService(assignmentRepo, st, notifSvc, notifRepo)
+	assignmentHandler := teacherhandler.NewAssignmentHandler(assignmentSvc)
 
-	projectRepo := teacher.NewProjectRepository(teacherDB)
-	projectSvc := teacher.NewProjectService(projectRepo, st, notifSvc, notifRepo)
-	projectHandler := teacher.NewProjectHandler(projectSvc)
+	projectRepo := teacherrepo.NewProjectRepository(teacherDB)
+	projectSvc := teachersvc.NewProjectService(projectRepo, st, notifSvc, notifRepo)
+	projectHandler := teacherhandler.NewProjectHandler(projectSvc)
 
-	assessmentRepo := teacher.NewAssessmentRepository(teacherDB)
-	assessmentSvc := teacher.NewAssessmentService(assessmentRepo, notifSvc, notifRepo)
-	assessmentHandler := teacher.NewAssessmentHandler(assessmentSvc)
+	assessmentRepo := teacherrepo.NewAssessmentRepository(teacherDB)
+	assessmentSvc := teachersvc.NewAssessmentService(assessmentRepo, notifSvc, notifRepo)
+	assessmentHandler := teacherhandler.NewAssessmentHandler(assessmentSvc)
 
 	// Modul 3.2: Notifications (all authenticated users)
 	notifications := protected.Group("/notifications")
