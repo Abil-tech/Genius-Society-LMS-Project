@@ -61,6 +61,10 @@ func RegisterTeacher(protected *gin.RouterGroup) {
 	assessmentSvc := teachersvc.NewAssessmentService(assessmentRepo, notifSvc, notifRepo)
 	assessmentHandler := teacherhandler.NewAssessmentHandler(assessmentSvc)
 
+	dashboardRepo := teacherrepo.NewDashboardRepository(teacherDB)
+	dashboardSvc := teachersvc.NewDashboardService(dashboardRepo, classRepo)
+	dashboardHandler := teacherhandler.NewDashboardHandler(dashboardSvc)
+
 	// Modul 3.2: Notifications (all authenticated users)
 	notifications := protected.Group("/notifications")
 	{
@@ -74,6 +78,9 @@ func RegisterTeacher(protected *gin.RouterGroup) {
 	teacherGroup.Use(middleware.RequireRoles(model.RoleTeacher))
 	teacherGroup.Use(middleware.TeacherScopeMiddleware(scopeRepo))
 	{
+		// Teacher Dashboard
+		teacherGroup.GET("/dashboard", dashboardHandler.GetDashboard)
+
 		// Modul 3.1: Classes & Students
 		teacherGroup.GET("/classes", classHandler.ListClasses)
 		teacherGroup.GET("/classes/:id", classHandler.GetClassDetail)
