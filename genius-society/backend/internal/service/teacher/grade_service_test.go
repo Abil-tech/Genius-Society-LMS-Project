@@ -50,6 +50,45 @@ func (m *mockGradeRepo) FindClassByID(ctx context.Context, classID bson.ObjectID
 func (m *mockGradeRepo) FindSubjectByID(ctx context.Context, subjectID bson.ObjectID) (*model.Subject, error) {
 	return &model.Subject{ID: subjectID, Name: "Matematika"}, nil
 }
+func (m *mockGradeRepo) BulkUpsertSTS(ctx context.Context, schoolID, teacherID bson.ObjectID, grades []*model.Grade, audits []*model.AuditLog) error {
+	return nil
+}
+func (m *mockGradeRepo) FindExistingExamGrade(ctx context.Context, schoolID, studentID, subjectID, academicYearID bson.ObjectID, semester int, gradeType model.GradeType) (*model.Grade, error) {
+	return nil, nil
+}
+func (m *mockGradeRepo) FindAssignment(ctx context.Context, schoolID, teacherID, id bson.ObjectID) (*model.Assignment, error) {
+	return nil, nil
+}
+func (m *mockGradeRepo) HasAssignmentSubmission(ctx context.Context, schoolID, assignmentID, studentID bson.ObjectID) (bool, error) {
+	return false, nil
+}
+func (m *mockGradeRepo) FindProject(ctx context.Context, schoolID, teacherID, id bson.ObjectID) (*model.Project, error) {
+	return nil, nil
+}
+func (m *mockGradeRepo) HasProjectSubmission(ctx context.Context, schoolID, projectID, studentID bson.ObjectID) (bool, error) {
+	return false, nil
+}
+func (m *mockGradeRepo) FindAssessment(ctx context.Context, schoolID, teacherID, id bson.ObjectID) (*model.Assessment, error) {
+	return nil, nil
+}
+func (m *mockGradeRepo) HasAssessmentAttempt(ctx context.Context, schoolID, assessmentID, studentID bson.ObjectID) (bool, error) {
+	return false, nil
+}
+func (m *mockGradeRepo) SetManualItemGrade(ctx context.Context, grade *model.Grade, audit *model.AuditLog) error {
+	return nil
+}
+func (m *mockGradeRepo) DeleteManualItemGrade(ctx context.Context, schoolID, sourceID, studentID bson.ObjectID, audit *model.AuditLog) error {
+	return nil
+}
+func (m *mockGradeRepo) FindManualItemGrade(ctx context.Context, schoolID, sourceID, studentID bson.ObjectID) (*model.Grade, error) {
+	return nil, nil
+}
+func (m *mockGradeRepo) FindLearningOutcomesForRecap(ctx context.Context, schoolID, academicYearID, subjectID, classID bson.ObjectID, semester int) ([]*model.LearningOutcome, error) {
+	return nil, nil
+}
+func (m *mockGradeRepo) FindItemsForRecap(ctx context.Context, schoolID, academicYearID, subjectID, classID bson.ObjectID) ([]*model.Assignment, []*model.Project, []*model.Assessment, error) {
+	return nil, nil, nil, nil
+}
 
 func TestGradeService_GetGrades(t *testing.T) {
 	schoolID := bson.NewObjectID()

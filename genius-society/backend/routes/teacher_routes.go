@@ -77,6 +77,10 @@ func RegisterTeacher(protected *gin.RouterGroup) {
 	walasSvc := teachersvc.NewWalasService(walasRepo)
 	walasHandler := teacherhandler.NewWalasHandler(walasSvc)
 
+	loRepo := teacherrepo.NewLearningOutcomeRepository(teacherDB)
+	loSvc := teachersvc.NewLearningOutcomeService(loRepo)
+	loHandler := teacherhandler.NewLearningOutcomeHandler(loSvc)
+
 	fileHandler := teacherhandler.NewFileHandler(st)
 
 	// Modul 3.2: Notifications (all authenticated users)
@@ -150,9 +154,31 @@ func RegisterTeacher(protected *gin.RouterGroup) {
 		teacherGroup.POST("/assessments/:id/start", assessmentHandler.StartAssessment)
 		teacherGroup.POST("/assessments/:id/submit", assessmentHandler.SubmitAssessment)
 
-		// Modul 3.8: Grades
+		// Modul 3.7: Learning Outcomes (Pencapaian Pembelajaran)
+		teacherGroup.GET("/learning-outcomes", loHandler.ListOutcomes)
+		teacherGroup.POST("/learning-outcomes", loHandler.CreateOutcome)
+		teacherGroup.GET("/learning-outcomes/:id", loHandler.GetOutcomeDetail)
+		teacherGroup.PUT("/learning-outcomes/:id", loHandler.UpdateOutcome)
+		teacherGroup.DELETE("/learning-outcomes/:id", loHandler.DeleteOutcome)
+
+		// Modul 3.7: Learning Outcome Mapping
+		teacherGroup.PUT("/assignments/:id/learning-outcome", loHandler.MapAssignmentOutcome)
+		teacherGroup.PUT("/projects/:id/learning-outcome", loHandler.MapProjectOutcome)
+		teacherGroup.PUT("/assessments/:id/learning-outcome", loHandler.MapAssessmentOutcome)
+
+		// Modul 3.8: Grades, Exams & Recap
 		teacherGroup.GET("/grades", gradeHandler.GetGrades)
 		teacherGroup.PUT("/grades", gradeHandler.UpdateGrade)
+		teacherGroup.PUT("/grades/exams", gradeHandler.InputSTSExams)
+		teacherGroup.GET("/grades/recap", gradeHandler.GetGradeRecap)
+
+		// Modul 3.8: Manual Grading for Students Without Submission
+		teacherGroup.PUT("/assignments/:id/students/:studentId/grade", gradeHandler.SetManualAssignmentGrade)
+		teacherGroup.DELETE("/assignments/:id/students/:studentId/grade", gradeHandler.DeleteManualAssignmentGrade)
+		teacherGroup.PUT("/projects/:id/students/:studentId/grade", gradeHandler.SetManualProjectGrade)
+		teacherGroup.DELETE("/projects/:id/students/:studentId/grade", gradeHandler.DeleteManualProjectGrade)
+		teacherGroup.PUT("/assessments/:id/students/:studentId/grade", gradeHandler.SetManualAssessmentGrade)
+		teacherGroup.DELETE("/assessments/:id/students/:studentId/grade", gradeHandler.DeleteManualAssessmentGrade)
 
 		// Modul 3.9: Schedule
 		teacherGroup.GET("/schedule", scheduleHandler.GetTeacherSchedule)
@@ -163,5 +189,24 @@ func RegisterTeacher(protected *gin.RouterGroup) {
 
 		// File: Presigned download URL for any R2 object key
 		teacherGroup.GET("/files/download", fileHandler.GetPresignedDownloadURL)
+	}
+
+	// Unprefixed aliases for learning outcomes and schedules
+	loAlias := protected.Group("/learning-outcomes")
+	loAlias.Use(middleware.RequireRoles(model.RoleTeacher))
+	loAlias.Use(middleware.TeacherScopeMiddleware(scopeRepo))
+	{
+		loAlias.GET("", loHandler.ListOutcomes)
+		loAlias.POST("", loHandler.CreateOutcome)
+		loAlias.GET("/:id", loHandler.GetOutcomeDetail)
+		loAlias.PUT("/:id", loHandler.UpdateOutcome)
+		loAlias.DELETE("/:id", loHandler.DeleteOutcome)
+	}
+
+	scheduleAlias := protected.Group("/schedules")
+	scheduleAlias.Use(middleware.RequireRoles(model.RoleTeacher))
+	scheduleAlias.Use(middleware.TeacherScopeMiddleware(scopeRepo))
+	{
+		scheduleAlias.GET("", scheduleHandler.GetTeacherSchedule)
 	}
 }

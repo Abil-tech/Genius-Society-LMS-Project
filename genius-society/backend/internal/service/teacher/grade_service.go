@@ -17,6 +17,11 @@ import (
 type GradeService interface {
 	GetGrades(ctx context.Context, scope *middleware.TeacherScope, classID, subjectID bson.ObjectID) ([]teacherdto.StudentGradeRowDTO, error)
 	UpdateGrade(ctx context.Context, scope *middleware.TeacherScope, payload teacherdto.UpdateStudentGradePayload) (*teacherdto.GradeItemDTO, error)
+
+	InputSTSExams(ctx context.Context, scope *middleware.TeacherScope, payload *teacherdto.BulkExamsPayload) error
+	SetManualGrade(ctx context.Context, scope *middleware.TeacherScope, itemType string, itemID, studentID bson.ObjectID, score float64, feedback, reason string) error
+	DeleteManualGrade(ctx context.Context, scope *middleware.TeacherScope, itemType string, itemID, studentID bson.ObjectID) error
+	GetGradeRecap(ctx context.Context, scope *middleware.TeacherScope, classID, subjectID bson.ObjectID, semester int) (*teacherdto.GradeRecapResponseDTO, error)
 }
 
 type gradeServiceImpl struct {
@@ -286,3 +291,495 @@ func (s *gradeServiceImpl) UpdateGrade(ctx context.Context, scope *middleware.Te
 		CreatedAt:      saved.CreatedAt.Format(time.RFC3339),
 	}, nil
 }
+
+func (s *gradeServiceImpl) InputSTSExams(ctx context.Context, scope *middleware.TeacherScope, payload *teacherdto.BulkExamsPayload) error {
+	if scope == nil {
+		return handler.ErrUnauthorized
+	}
+
+	if payload.Type != "sts" {
+		return handler.NewValidationError("Tipe ujian hanya mendukung 'sts'")
+	}
+
+	if len(payload.Entries) == 0 {
+		return handler.NewValidationError("Daftar nilai ujian tidak boleh kosong")
+	}
+
+	if len(payload.Entries) > 100 {
+		return handler.NewValidationError("Maksimal 100 entri nilai per pengiriman")
+	}
+
+	classID, err := bson.ObjectIDFromHex(payload.ClassID)
+	if err != nil {
+		return handler.NewValidationError("ID kelas tidak valid")
+	}
+
+	subjectID, err := bson.ObjectIDFromHex(payload.SubjectID)
+	if err != nil {
+		return handler.NewValidationError("ID mata pelajaran tidak valid")
+	}
+
+	if !scope.HasClassSubject(classID, subjectID) {
+		return handler.ErrNotAssigned
+	}
+
+	semester := payload.Semester
+	if semester <= 0 {
+		semester = scope.Semester
+	}
+
+	// Validate all students belong to the class
+	students, err := s.repo.FindStudentsByClassID(ctx, scope.SchoolID, classID)
+	if err != nil {
+		return err
+	}
+	studentClassMap := make(map[bson.ObjectID]bool)
+	for _, st := range students {
+		studentClassMap[st.ID] = true
+	}
+
+	now := time.Now().UTC()
+	var grades []*model.Grade
+	var audits []*model.AuditLog
+
+	seenStudents := make(map[bson.ObjectID]bool)
+	for _, entry := range payload.Entries {
+		stID, err := bson.ObjectIDFromHex(entry.StudentID)
+		if err != nil {
+			return handler.NewValidationError("ID siswa tidak valid")
+		}
+		if !studentClassMap[stID] {
+			return handler.NewValidationError("Siswa tidak aktif pada kelas sasaran")
+		}
+		if seenStudents[stID] {
+			return handler.NewValidationError("Duplikasi siswa pada daftar entri nilai")
+		}
+		seenStudents[stID] = true
+
+		if entry.Score < 0 || entry.Score > 100 {
+			return handler.NewValidationError("Nilai harus berada di rentang 0 hingga 100")
+		}
+
+		// Max 1 STS per student-subject-semester: duplicate check
+		existing, err := s.repo.FindExistingExamGrade(ctx, scope.SchoolID, stID, subjectID, scope.AcademicYearID, semester, model.GradeUTS)
+		if err != nil {
+			return err
+		}
+		if existing != nil {
+			return handler.NewConflictError("Nilai STS untuk siswa sudah tercatat pada semester ini")
+		}
+
+		g := &model.Grade{
+			SchoolID:       scope.SchoolID,
+			StudentID:      stID,
+			SubjectID:      subjectID,
+			ClassID:        classID,
+			AcademicYearID: scope.AcademicYearID,
+			Semester:       semester,
+			TeacherID:      scope.TeacherID,
+			Type:           model.GradeUTS,
+			Score:          entry.Score,
+			Source:         "manual",
+			GradedBy:       scope.TeacherID,
+		}
+		grades = append(grades, g)
+
+		audit := &model.AuditLog{
+			ID:         bson.NewObjectID(),
+			SchoolID:   scope.SchoolID,
+			UserID:     scope.UserID,
+			Action:     "input_sts_exam",
+			EntityType: "grade",
+			EntityID:   stID.Hex(),
+			Details: bson.M{
+				"studentId": stID.Hex(),
+				"subjectId": subjectID.Hex(),
+				"classId":   classID.Hex(),
+				"score":     entry.Score,
+				"semester":  semester,
+			},
+			Timestamp: now,
+		}
+		audits = append(audits, audit)
+	}
+
+	return s.repo.BulkUpsertSTS(ctx, scope.SchoolID, scope.TeacherID, grades, audits)
+}
+
+func (s *gradeServiceImpl) SetManualGrade(ctx context.Context, scope *middleware.TeacherScope, itemType string, itemID, studentID bson.ObjectID, score float64, feedback, reason string) error {
+	if scope == nil {
+		return handler.ErrUnauthorized
+	}
+
+	if score < 0 || score > 100 {
+		return handler.NewValidationError("Nilai harus berada di rentang 0 hingga 100")
+	}
+
+	student, err := s.repo.FindStudentByID(ctx, studentID)
+	if err != nil || student == nil || student.SchoolID != scope.SchoolID {
+		return handler.ErrNotFound
+	}
+
+	now := time.Now().UTC()
+	var subjectID bson.ObjectID
+	var classIDs []bson.ObjectID
+	var gradeType model.GradeType
+
+	switch itemType {
+	case "assignment":
+		asg, err := s.repo.FindAssignment(ctx, scope.SchoolID, scope.TeacherID, itemID)
+		if err != nil || asg == nil {
+			return handler.ErrNotFound
+		}
+		if now.Before(asg.Deadline) {
+			return handler.NewConflictError("DEADLINE_NOT_PASSED: Penilaian manual hanya dapat dilakukan setelah batas waktu pengumpulan lewat")
+		}
+		hasSub, _ := s.repo.HasAssignmentSubmission(ctx, scope.SchoolID, itemID, studentID)
+		if hasSub {
+			return handler.NewConflictError("SUBMISSION_EXISTS: Siswa sudah memiliki pengumpulan tugas")
+		}
+		subjectID = asg.SubjectID
+		classIDs = asg.ClassIDs
+		gradeType = model.GradeAssignment
+
+	case "project":
+		prj, err := s.repo.FindProject(ctx, scope.SchoolID, scope.TeacherID, itemID)
+		if err != nil || prj == nil {
+			return handler.ErrNotFound
+		}
+		if now.Before(prj.Deadline) {
+			return handler.NewConflictError("DEADLINE_NOT_PASSED: Penilaian manual hanya dapat dilakukan setelah batas waktu pengumpulan lewat")
+		}
+		hasSub, _ := s.repo.HasProjectSubmission(ctx, scope.SchoolID, itemID, studentID)
+		if hasSub {
+			return handler.NewConflictError("SUBMISSION_EXISTS: Siswa sudah memiliki pengumpulan projek")
+		}
+		subjectID = prj.SubjectID
+		classIDs = prj.ClassIDs
+		gradeType = model.GradeProject
+
+	case "assessment":
+		asm, err := s.repo.FindAssessment(ctx, scope.SchoolID, scope.TeacherID, itemID)
+		if err != nil || asm == nil {
+			return handler.ErrNotFound
+		}
+		if asm.EndAt != nil && now.Before(*asm.EndAt) {
+			return handler.NewConflictError("DEADLINE_NOT_PASSED: Penilaian manual hanya dapat dilakukan setelah batas waktu asesmen selesai")
+		}
+		hasAtt, _ := s.repo.HasAssessmentAttempt(ctx, scope.SchoolID, itemID, studentID)
+		if hasAtt {
+			return handler.NewConflictError("SUBMISSION_EXISTS: Siswa sudah memiliki pengerjaan asesmen")
+		}
+		subjectID = asm.SubjectID
+		classIDs = asm.ClassIDs
+		gradeType = model.GradeAssessment
+
+	default:
+		return handler.NewValidationError("Tipe item tidak valid")
+	}
+
+	// Verify student belongs to one of item's classes
+	classMatch := false
+	for _, cid := range classIDs {
+		if cid == student.ClassID {
+			classMatch = true
+			break
+		}
+	}
+	if !classMatch {
+		return handler.ErrNotFound
+	}
+
+	grade := &model.Grade{
+		SchoolID:       scope.SchoolID,
+		StudentID:      studentID,
+		SubjectID:      subjectID,
+		ClassID:        student.ClassID,
+		AcademicYearID: scope.AcademicYearID,
+		Semester:       scope.Semester,
+		TeacherID:      scope.TeacherID,
+		Type:           gradeType,
+		SourceID:       itemID,
+		Score:          score,
+		Source:         "manual",
+		Reason:         reason,
+		GradedBy:       scope.TeacherID,
+	}
+
+	audit := &model.AuditLog{
+		ID:         bson.NewObjectID(),
+		SchoolID:   scope.SchoolID,
+		UserID:     scope.UserID,
+		Action:     "manual_item_grade",
+		EntityType: "grade",
+		EntityID:   itemID.Hex(),
+		Details: bson.M{
+			"itemType":  itemType,
+			"itemId":    itemID.Hex(),
+			"studentId": studentID.Hex(),
+			"score":     score,
+			"reason":    reason,
+			"feedback":  feedback,
+		},
+		Timestamp: now,
+	}
+
+	return s.repo.SetManualItemGrade(ctx, grade, audit)
+}
+
+func (s *gradeServiceImpl) DeleteManualGrade(ctx context.Context, scope *middleware.TeacherScope, itemType string, itemID, studentID bson.ObjectID) error {
+	if scope == nil {
+		return handler.ErrUnauthorized
+	}
+
+	g, err := s.repo.FindManualItemGrade(ctx, scope.SchoolID, itemID, studentID)
+	if err != nil || g == nil {
+		return handler.ErrNotFound
+	}
+
+	if g.Source != "manual" {
+		return handler.NewConflictError("Hanya nilai dengan sumber manual yang dapat dihapus")
+	}
+
+	audit := &model.AuditLog{
+		ID:         bson.NewObjectID(),
+		SchoolID:   scope.SchoolID,
+		UserID:     scope.UserID,
+		Action:     "delete_manual_grade",
+		EntityType: "grade",
+		EntityID:   g.ID.Hex(),
+		Details: bson.M{
+			"itemType":  itemType,
+			"itemId":    itemID.Hex(),
+			"studentId": studentID.Hex(),
+		},
+		Timestamp: time.Now().UTC(),
+	}
+
+	return s.repo.DeleteManualItemGrade(ctx, scope.SchoolID, itemID, studentID, audit)
+}
+
+func (s *gradeServiceImpl) GetGradeRecap(ctx context.Context, scope *middleware.TeacherScope, classID, subjectID bson.ObjectID, semester int) (*teacherdto.GradeRecapResponseDTO, error) {
+	if scope == nil {
+		return nil, handler.ErrUnauthorized
+	}
+
+	if !scope.HasClassSubject(classID, subjectID) && !scope.IsWalasOf(classID) {
+		return nil, handler.NewForbiddenError("Anda tidak memiliki akses rekap nilai untuk kelas dan mata pelajaran ini")
+	}
+
+	if semester <= 0 {
+		semester = scope.Semester
+	}
+
+	cls, _ := s.repo.FindClassByID(ctx, classID)
+	className := ""
+	if cls != nil {
+		className = cls.Name
+	}
+
+	sub, _ := s.repo.FindSubjectByID(ctx, subjectID)
+	subjectName := ""
+	if sub != nil {
+		subjectName = sub.Name
+	}
+
+	// Dynamic weight resolution
+	outcomeWeight := 50.0
+	stsWeight := 50.0
+	cfg, _ := s.repo.FindGradingConfig(ctx, scope.SchoolID, scope.AcademicYearID, subjectID)
+	if cfg != nil && (cfg.OutcomeWeight+cfg.StsWeight == 100) {
+		outcomeWeight = cfg.OutcomeWeight
+		stsWeight = cfg.StsWeight
+	}
+
+	students, err := s.repo.FindStudentsByClassID(ctx, scope.SchoolID, classID)
+	if err != nil {
+		return nil, err
+	}
+
+	var userIDs []bson.ObjectID
+	for _, st := range students {
+		if !st.UserID.IsZero() {
+			userIDs = append(userIDs, st.UserID)
+		}
+	}
+	userMap, _ := s.repo.FindUsersByIDs(ctx, userIDs)
+
+	outcomes, err := s.repo.FindLearningOutcomesForRecap(ctx, scope.SchoolID, scope.AcademicYearID, subjectID, classID, semester)
+	if err != nil {
+		return nil, err
+	}
+
+	asgs, prjs, asms, err := s.repo.FindItemsForRecap(ctx, scope.SchoolID, scope.AcademicYearID, subjectID, classID)
+	if err != nil {
+		return nil, err
+	}
+
+	// Map items to learning outcome
+	type itemRef struct {
+		id   bson.ObjectID
+		kind model.GradeType
+	}
+	outcomeItems := make(map[bson.ObjectID][]itemRef)
+	unmappedCount := 0
+
+	for _, a := range asgs {
+		if a.LearningOutcomeID != nil && !a.LearningOutcomeID.IsZero() {
+			outcomeItems[*a.LearningOutcomeID] = append(outcomeItems[*a.LearningOutcomeID], itemRef{id: a.ID, kind: model.GradeAssignment})
+		} else {
+			unmappedCount++
+		}
+	}
+	for _, p := range prjs {
+		if p.LearningOutcomeID != nil && !p.LearningOutcomeID.IsZero() {
+			outcomeItems[*p.LearningOutcomeID] = append(outcomeItems[*p.LearningOutcomeID], itemRef{id: p.ID, kind: model.GradeProject})
+		} else {
+			unmappedCount++
+		}
+	}
+	for _, am := range asms {
+		if am.LearningOutcomeID != nil && !am.LearningOutcomeID.IsZero() {
+			outcomeItems[*am.LearningOutcomeID] = append(outcomeItems[*am.LearningOutcomeID], itemRef{id: am.ID, kind: model.GradeAssessment})
+		} else {
+			unmappedCount++
+		}
+	}
+
+	// Fetch all grades for this class & subject & semester
+	grades, err := s.repo.FindGradesByClassSubject(ctx, scope.SchoolID, classID, subjectID, scope.AcademicYearID)
+	if err != nil {
+		return nil, err
+	}
+
+	// Index grades by studentID -> sourceID (or type)
+	type studentGradeInfo struct {
+		itemScores map[bson.ObjectID]float64
+		manualMap  map[bson.ObjectID]bool
+		stsScore   *float64
+	}
+	studentGrades := make(map[bson.ObjectID]*studentGradeInfo)
+	for _, g := range grades {
+		if g.Semester != semester {
+			continue
+		}
+		info, ok := studentGrades[g.StudentID]
+		if !ok {
+			info = &studentGradeInfo{
+				itemScores: make(map[bson.ObjectID]float64),
+				manualMap:  make(map[bson.ObjectID]bool),
+			}
+			studentGrades[g.StudentID] = info
+		}
+
+		if g.Type == model.GradeUTS {
+			sc := g.Score
+			info.stsScore = &sc
+		} else if !g.SourceID.IsZero() {
+			info.itemScores[g.SourceID] = g.Score
+			if g.Source == "manual" {
+				info.manualMap[g.SourceID] = true
+			}
+		}
+	}
+
+	var emptyOutcomes []string
+	studentRows := make([]teacherdto.StudentGradeRecapDTO, 0, len(students))
+
+	for _, st := range students {
+		stName := ""
+		if u, ok := userMap[st.UserID]; ok && u != nil {
+			stName = u.Name
+		}
+
+		info := studentGrades[st.ID]
+		if info == nil {
+			info = &studentGradeInfo{
+				itemScores: make(map[bson.ObjectID]float64),
+				manualMap:  make(map[bson.ObjectID]bool),
+			}
+		}
+
+		var studentCalcOutcomes []OutcomeGradeCalculation
+		var outcomeRecapDTOs []teacherdto.OutcomeRecapDTO
+		var missing []string
+
+		for _, lo := range outcomes {
+			items := outcomeItems[lo.ID]
+			var scores []float64
+			manualCount := 0
+
+			for _, it := range items {
+				if sc, ok := info.itemScores[it.id]; ok {
+					scores = append(scores, sc)
+					if info.manualMap[it.id] {
+						manualCount++
+					}
+				}
+			}
+
+			sc, prov := CalculateOutcomeGrade(scores, len(items))
+
+			calc := OutcomeGradeCalculation{
+				OutcomeID:        lo.ID.Hex(),
+				Title:            lo.Title,
+				ItemCount:        len(items),
+				GradedCount:      len(scores),
+				ManualCount:      manualCount,
+				Score:            sc,
+				ProvisionalScore: prov,
+			}
+			studentCalcOutcomes = append(studentCalcOutcomes, calc)
+
+			if len(items) > 0 && sc == nil {
+				missing = append(missing, "PP: "+lo.Title)
+			}
+
+			outcomeRecapDTOs = append(outcomeRecapDTOs, teacherdto.OutcomeRecapDTO{
+				ID:               lo.ID.Hex(),
+				Title:            lo.Title,
+				Score:            sc,
+				ProvisionalScore: prov,
+				GradedCount:      len(scores),
+				TotalCount:       len(items),
+				ManualCount:      manualCount,
+			})
+		}
+
+		rataPP, empty := CalculateRataPP(studentCalcOutcomes)
+		emptyOutcomes = empty
+
+		if info.stsScore == nil {
+			missing = append(missing, "STS")
+		}
+
+		finalScore := CalculateSemester1Score(rataPP, info.stsScore, outcomeWeight, stsWeight)
+		isComplete := finalScore != nil
+
+		studentRows = append(studentRows, teacherdto.StudentGradeRecapDTO{
+			StudentID:         st.ID.Hex(),
+			StudentName:       stName,
+			NIS:               st.NIS,
+			Outcomes:          outcomeRecapDTOs,
+			AvgOutcomes:       rataPP,
+			STS:               info.stsScore,
+			SemesterStsScore:  finalScore,
+			IsComplete:        isComplete,
+			MissingComponents: missing,
+		})
+	}
+
+	return &teacherdto.GradeRecapResponseDTO{
+		ClassID:           classID.Hex(),
+		ClassName:         className,
+		SubjectID:         subjectID.Hex(),
+		SubjectName:       subjectName,
+		Semester:          semester,
+		OutcomeWeight:     outcomeWeight,
+		StsWeight:         stsWeight,
+		UnmappedItemCount: unmappedCount,
+		EmptyOutcomes:     emptyOutcomes,
+		Students:          studentRows,
+	}, nil
+}
+
