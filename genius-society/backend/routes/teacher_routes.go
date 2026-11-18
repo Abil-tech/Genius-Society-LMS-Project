@@ -65,6 +65,18 @@ func RegisterTeacher(protected *gin.RouterGroup) {
 	dashboardSvc := teachersvc.NewDashboardService(dashboardRepo, classRepo)
 	dashboardHandler := teacherhandler.NewDashboardHandler(dashboardSvc)
 
+	scheduleRepo := teacherrepo.NewScheduleRepository(teacherDB)
+	scheduleSvc := teachersvc.NewScheduleService(scheduleRepo)
+	scheduleHandler := teacherhandler.NewScheduleHandler(scheduleSvc)
+
+	gradeRepo := teacherrepo.NewGradeRepository(teacherDB)
+	gradeSvc := teachersvc.NewGradeService(gradeRepo)
+	gradeHandler := teacherhandler.NewGradeHandler(gradeSvc)
+
+	walasRepo := teacherrepo.NewWalasRepository(teacherDB)
+	walasSvc := teachersvc.NewWalasService(walasRepo)
+	walasHandler := teacherhandler.NewWalasHandler(walasSvc)
+
 	// Modul 3.2: Notifications (all authenticated users)
 	notifications := protected.Group("/notifications")
 	{
@@ -135,5 +147,16 @@ func RegisterTeacher(protected *gin.RouterGroup) {
 		teacherGroup.PUT("/assessments/:id/answers/:answerId/grade", assessmentHandler.GradeEssayAnswer)
 		teacherGroup.POST("/assessments/:id/start", assessmentHandler.StartAssessment)
 		teacherGroup.POST("/assessments/:id/submit", assessmentHandler.SubmitAssessment)
+
+		// Modul 3.8: Grades
+		teacherGroup.GET("/grades", gradeHandler.GetGrades)
+		teacherGroup.PUT("/grades", gradeHandler.UpdateGrade)
+
+		// Modul 3.9: Schedule
+		teacherGroup.GET("/schedule", scheduleHandler.GetTeacherSchedule)
+
+		// Walas: Homeroom features
+		teacherGroup.GET("/walas/students", walasHandler.GetWalasStudents)
+		teacherGroup.GET("/walas/grades", walasHandler.GetWalasGrades)
 	}
 }
