@@ -6,6 +6,7 @@ import (
 	"net/http"
 	"strconv"
 	"strings"
+	"time"
 
 	teacherdto "github.com/geniussociety/backend/internal/dto/teacher"
 	"github.com/geniussociety/backend/internal/handler"
@@ -90,16 +91,47 @@ func (h *ProjectHandler) CreateProject(c *gin.Context) {
 			return
 		}
 
+		// Try parsing from a JSON "data" field first (API client approach).
 		jsonData := c.PostForm("data")
 		if jsonData != "" {
 			if err := json.Unmarshal([]byte(jsonData), &payload); err != nil {
 				handler.RespondError(c, handler.NewValidationError("Payload JSON pada field data tidak valid"))
 				return
 			}
+		} else {
+			// Frontend sends individual form fields — parse them one by one.
+			payload.Title = strings.TrimSpace(c.PostForm("title"))
+			payload.Description = strings.TrimSpace(c.PostForm("description"))
+			payload.Instructions = strings.TrimSpace(c.PostForm("instructions"))
+			payload.SubjectID = strings.TrimSpace(c.PostForm("subjectId"))
+			if ar := strings.TrimSpace(c.PostForm("allowResubmit")); ar == "true" {
+				payload.AllowResubmit = true
+			}
+			// classIds may appear multiple times (one per append call).
+			if form != nil && form.Value != nil {
+				payload.ClassIDs = form.Value["classIds"]
+			}
+			// Parse deadline from ISO 8601 string.
+			if dlStr := strings.TrimSpace(c.PostForm("deadline")); dlStr != "" {
+				t, err := time.Parse(time.RFC3339, dlStr)
+				if err != nil {
+					// Try without nanoseconds (e.g. "2026-12-01T00:00:00Z").
+					t, err = time.Parse("2006-01-02T15:04:05Z07:00", dlStr)
+				}
+				if err != nil {
+					// Try date-time-local format "2006-01-02T15:04".
+					t, err = time.Parse("2006-01-02T15:04", dlStr)
+				}
+				if err == nil {
+					payload.Deadline = t.UTC()
+				}
+			}
 		}
 
 		if form != nil && form.File != nil {
-			if fList, ok := form.File["files"]; ok {
+			if fList, ok := form.File["attachments"]; ok {
+				files = fList
+			} else if fList, ok := form.File["files"]; ok {
 				files = fList
 			} else if fList, ok := form.File["file"]; ok {
 				files = fList
@@ -152,10 +184,45 @@ func (h *ProjectHandler) UpdateProject(c *gin.Context) {
 				handler.RespondError(c, handler.NewValidationError("Payload JSON pada field data tidak valid"))
 				return
 			}
+		} else {
+			// Frontend sends individual form fields.
+			if v := strings.TrimSpace(c.PostForm("title")); v != "" {
+				payload.Title = v
+			}
+			if v := strings.TrimSpace(c.PostForm("description")); v != "" {
+				payload.Description = v
+			}
+			if v := strings.TrimSpace(c.PostForm("instructions")); v != "" {
+				payload.Instructions = v
+			}
+			if form != nil && form.Value != nil {
+				if cids, ok := form.Value["classIds"]; ok && len(cids) > 0 {
+					payload.ClassIDs = cids
+				}
+			}
+			if ar := strings.TrimSpace(c.PostForm("allowResubmit")); ar != "" {
+				b := ar == "true"
+				payload.AllowResubmit = &b
+			}
+			if dlStr := strings.TrimSpace(c.PostForm("deadline")); dlStr != "" {
+				t, err := time.Parse(time.RFC3339, dlStr)
+				if err != nil {
+					t, err = time.Parse("2006-01-02T15:04:05Z07:00", dlStr)
+				}
+				if err != nil {
+					t, err = time.Parse("2006-01-02T15:04", dlStr)
+				}
+				if err == nil {
+					utc := t.UTC()
+					payload.Deadline = &utc
+				}
+			}
 		}
 
 		if form != nil && form.File != nil {
-			if fList, ok := form.File["files"]; ok {
+			if fList, ok := form.File["attachments"]; ok {
+				files = fList
+			} else if fList, ok := form.File["files"]; ok {
 				files = fList
 			} else if fList, ok := form.File["file"]; ok {
 				files = fList

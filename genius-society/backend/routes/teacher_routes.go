@@ -77,6 +77,8 @@ func RegisterTeacher(protected *gin.RouterGroup) {
 	walasSvc := teachersvc.NewWalasService(walasRepo)
 	walasHandler := teacherhandler.NewWalasHandler(walasSvc)
 
+	fileHandler := teacherhandler.NewFileHandler(st)
+
 	// Modul 3.2: Notifications (all authenticated users)
 	notifications := protected.Group("/notifications")
 	{
@@ -158,5 +160,8 @@ func RegisterTeacher(protected *gin.RouterGroup) {
 		// Walas: Homeroom features
 		teacherGroup.GET("/walas/students", walasHandler.GetWalasStudents)
 		teacherGroup.GET("/walas/grades", walasHandler.GetWalasGrades)
+
+		// File: Presigned download URL for any R2 object key
+		teacherGroup.GET("/files/download", fileHandler.GetPresignedDownloadURL)
 	}
 }
