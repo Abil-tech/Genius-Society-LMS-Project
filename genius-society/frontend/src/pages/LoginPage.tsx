@@ -1,11 +1,12 @@
 import { useState, type FormEvent } from 'react'
 import { Link, useNavigate } from 'react-router-dom'
-import { User, Lock, AlertCircle, Loader2 } from 'lucide-react'
+import { User, Lock, AlertCircle, Loader2, Eye, EyeOff } from 'lucide-react'
 import { useAuth } from '../contexts/AuthContext'
 
 export default function LoginPage() {
   const [username, setUsername] = useState('')
   const [password, setPassword] = useState('')
+  const [showPassword, setShowPassword] = useState(false)
   const [error, setError] = useState<string | null>(null)
   const [submitting, setSubmitting] = useState(false)
 
@@ -124,13 +125,22 @@ export default function LoginPage() {
                 <Lock size={15} />
               </span>
               <input
-                type="password"
+                type={showPassword ? 'text' : 'password'}
                 required
                 value={password}
                 onChange={(e) => setPassword(e.target.value)}
                 placeholder="••••••••••••"
-                className="w-full rounded-md border border-orange-200/70 bg-[#FFFBF7] py-2.5 pl-10 pr-3 font-mono text-xs text-gray-800 placeholder-gray-400 transition-colors focus:border-brand-orange focus:bg-white focus:outline-none focus:ring-1 focus:ring-brand-orange"
+                className="w-full rounded-md border border-orange-200/70 bg-[#FFFBF7] py-2.5 pl-10 pr-10 font-mono text-xs text-gray-800 placeholder-gray-400 transition-colors focus:border-brand-orange focus:bg-white focus:outline-none focus:ring-1 focus:ring-brand-orange"
               />
+              <button
+                type="button"
+                onClick={() => setShowPassword(!showPassword)}
+                className="absolute right-3 text-gray-400 hover:text-gray-600 focus:outline-none"
+                tabIndex={-1}
+                aria-label={showPassword ? 'Sembunyikan password' : 'Tampilkan password'}
+              >
+                {showPassword ? <EyeOff size={15} /> : <Eye size={15} />}
+              </button>
             </div>
           </div>
 
