@@ -183,6 +183,7 @@ func Setup(
 	}
 
 	RegisterTeacher(protected)
+	RegisterStudent(protected)
 
 	// Health check
 	r.GET("/health", func(c *gin.Context) {

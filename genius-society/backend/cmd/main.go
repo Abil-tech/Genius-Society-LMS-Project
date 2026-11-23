@@ -25,6 +25,7 @@ func main() {
 	log.Println("Connected to MongoDB:", cfg.MongoDB)
 	_ = config.EnsureTeacherIndexes(context.Background(), db)
 	routes.InitTeacher(db)
+	routes.InitStudent(db)
 
 	// Repositories
 	userRepo := repository.NewUserRepository(db)
@@ -70,6 +71,7 @@ func main() {
 		log.Println("B2 storage initialized:", cfg.B2BucketName)
 	}
 	routes.InitTeacherStorage(storage.NewFileStorage(b2))
+	routes.InitStudentStorage(storage.NewFileStorage(b2))
 	_ = b2 // will be injected into future handlers
 
 	// Router
