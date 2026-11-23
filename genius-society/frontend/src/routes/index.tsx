@@ -8,7 +8,6 @@ import AdminDashboard from '../pages/admin/AdminDashboardPage'
 import StudentsManagementPage from '../pages/admin/StudentsManagementPage'
 import TeachersManagementPage from '../pages/admin/TeachersManagementPage'
 import SubjectsManagementPage from '../pages/admin/SubjectsManagementPage'
-import StudentDashboard from '../pages/StudentDashboard'
 import CurriculumDashboard from '../pages/CurriculumDashboard'
 import PrincipalDashboard from '../pages/PrincipalDashboard'
 import ClassesManagementPage from '../pages/admin/ClassesManagementPage'
@@ -37,6 +36,21 @@ import TeacherGradesPage from '../pages/teacher/TeacherGradesPage'
 import TeacherSchedulePage from '../pages/teacher/TeacherSchedulePage'
 import TeacherWalasStudentsPage from '../pages/teacher/TeacherWalasStudentsPage'
 import TeacherWalasGradesPage from '../pages/teacher/TeacherWalasGradesPage'
+
+// Student Pages
+import StudentDashboardPage from '../pages/student/StudentDashboardPage'
+import StudentMaterialsPage from '../pages/student/StudentMaterialsPage'
+import StudentMaterialDetailPage from '../pages/student/StudentMaterialDetailPage'
+import StudentAssignmentsPage from '../pages/student/StudentAssignmentsPage'
+import StudentAssignmentDetailPage from '../pages/student/StudentAssignmentDetailPage'
+import StudentAssessmentsPage from '../pages/student/StudentAssessmentsPage'
+import StudentAssessmentDetailPage from '../pages/student/StudentAssessmentDetailPage'
+import StudentAssessmentWorkPage from '../pages/student/StudentAssessmentWorkPage'
+import StudentProjectsPage from '../pages/student/StudentProjectsPage'
+import StudentProjectDetailPage from '../pages/student/StudentProjectDetailPage'
+import StudentGradesPage from '../pages/student/StudentGradesPage'
+import StudentSchedulePage from '../pages/student/StudentSchedulePage'
+import StudentRankingPage from '../pages/student/StudentRankingPage'
 
 export default function AppRoutes() {
   return (
@@ -118,9 +132,21 @@ export default function AppRoutes() {
         <Route path="/teacher/walas/grades" element={<TeacherWalasGradesPage />} />
       </Route>
 
-      {/* Protected routes: Other Roles */}
+      {/* Protected routes: Student */}
       <Route element={<ProtectedRoute allowedRoles={['student']} />}>
-        <Route path="/student/*" element={<StudentDashboard />} />
+        <Route path="/student" element={<StudentDashboardPage />} />
+        <Route path="/student/materials" element={<StudentMaterialsPage />} />
+        <Route path="/student/materials/:id" element={<StudentMaterialDetailPage />} />
+        <Route path="/student/assignments" element={<StudentAssignmentsPage />} />
+        <Route path="/student/assignments/:id" element={<StudentAssignmentDetailPage />} />
+        <Route path="/student/assessments" element={<StudentAssessmentsPage />} />
+        <Route path="/student/assessments/:id" element={<StudentAssessmentDetailPage />} />
+        <Route path="/student/assessments/:id/work" element={<StudentAssessmentWorkPage />} />
+        <Route path="/student/projects" element={<StudentProjectsPage />} />
+        <Route path="/student/projects/:id" element={<StudentProjectDetailPage />} />
+        <Route path="/student/grades" element={<StudentGradesPage />} />
+        <Route path="/student/schedule" element={<StudentSchedulePage />} />
+        <Route path="/student/ranking" element={<StudentRankingPage />} />
       </Route>
 
       <Route element={<ProtectedRoute allowedRoles={['curriculum']} />}>

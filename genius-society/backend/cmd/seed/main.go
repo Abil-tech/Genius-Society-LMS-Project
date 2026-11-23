@@ -8,16 +8,26 @@ import (
 	"github.com/geniussociety/backend/internal/config"
 	"github.com/geniussociety/backend/internal/model"
 	"github.com/geniussociety/backend/internal/repository"
+	"go.mongodb.org/mongo-driver/v2/bson"
 	"golang.org/x/crypto/bcrypt"
 )
 
 type SeedUser struct {
-	Name     string
-	Username string
-	Email    string
-	Password string
-	Role     model.Role
-	IsWalas  bool
+	Name           string
+	Username       string
+	Email          string
+	Password       string
+	Role           model.Role
+	IsWalas        bool
+	NIS            string
+	NISN           string
+	Gender         string
+	BirthPlace     string
+	BirthDate      string
+	Address        string
+	ParentName     string
+	ParentPhone    string
+	EnrollmentYear int
 }
 
 func main() {
@@ -83,23 +93,41 @@ func main() {
 			Role:     model.RolePrincipal,
 		},
 		{
-			Name:     "Ahmad Fauzi",
-			Username: "murid1",
-			Email:    "murid1@genius.ac.id",
-			Password: "Password123!",
-			Role:     model.RoleStudent,
+			Name:           "Ahmad Fauzi",
+			Username:       "murid1",
+			Email:          "murid1@genius.ac.id",
+			Password:       "Password123!",
+			Role:           model.RoleStudent,
+			NIS:            "1001",
+			NISN:           "0051234567",
+			Gender:         "L",
+			BirthPlace:     "Jakarta",
+			BirthDate:      "2008-05-14",
+			Address:        "Jl. Merdeka No. 10, Jakarta Pusat",
+			ParentName:     "Bambang Fauzi",
+			ParentPhone:    "081234567890",
+			EnrollmentYear: 2024,
 		},
 		{
-			Name:     "Putri Anggraini",
-			Username: "murid2",
-			Email:    "murid2@genius.ac.id",
-			Password: "Password123!",
-			Role:     model.RoleStudent,
+			Name:           "Putri Anggraini",
+			Username:       "murid2",
+			Email:          "murid2@genius.ac.id",
+			Password:       "Password123!",
+			Role:           model.RoleStudent,
+			NIS:            "1002",
+			NISN:           "0057654321",
+			Gender:         "P",
+			BirthPlace:     "Bandung",
+			BirthDate:      "2008-08-20",
+			Address:        "Jl. Asia Afrika No. 25, Bandung",
+			ParentName:     "Agus Anggraini",
+			ParentPhone:    "081298765432",
+			EnrollmentYear: 2024,
 		},
 	}
 
-// Create or fetch demo school
-schoolRepo := repository.NewSchoolRepository(db)
+	// Create or fetch demo school
+	schoolRepo := repository.NewSchoolRepository(db)
 	demoSchool, err := schoolRepo.FindOrCreateByName(ctx, "Demo School", "Jl. Pendidikan No.1, Jakarta")
 	if err != nil {
 		log.Fatalf("failed to get or create demo school: %v", err)
@@ -130,14 +158,38 @@ schoolRepo := repository.NewSchoolRepository(db)
 		log.Printf("✅ demo academic year already exists: %s (ID %s)", demoAYName, existingAY.ID.Hex())
 	}
 
-
 	// Early user processing loop removed; handled by later comprehensive loop.
 
+	// ---------------------------------------------------
+	// Duplicate school creation and migration removed; handled earlier in script.
 
+	// ---------------------------------------------------
+	// 2️⃣ Insert / update users (including admin)
+	for _, su := range seedUsers {
+		existing, _ := userRepo.FindByUsername(ctx, su.Username)
 
-		// ---------------------------------------------------
-		// Duplicate school creation and migration removed; handled earlier in script.
+		// ----- CREATE new user -----
+		if existing == nil {
+			// password hashing for new user
+			hash, err := bcrypt.GenerateFromPassword([]byte(su.Password), bcrypt.DefaultCost)
+			if err != nil {
+				log.Fatalf("bcrypt error: %v", err)
+			}
+			u := &model.User{
+				Name:         su.Name,
+				Username:     su.Username,
+				Email:        su.Email,
+				PasswordHash: string(hash),
+				Role:         su.Role,
+				IsActive:     true,
+			}
 
+			// Assign demo school ID to all school-scoped users
+			if su.Role != model.RoleSuperAdmin {
+				u.SchoolID = demoSchoolID
+			} else {
+				u.SchoolID = demoSchoolID
+			}
 
 		// ---------------------------------------------------
 		// 2️⃣ Insert / update users (including admin)
@@ -175,34 +227,156 @@ schoolRepo := repository.NewSchoolRepository(db)
 				if su.Role == model.RoleTeacher {
 					_ = teacherRepo.Create(ctx, &model.Teacher{UserID: u.ID, NIP: "19850101" + u.ID.Hex()[:6], IsWalas: su.IsWalas})
 				}
+				// student profile creation for new user
+				if su.Role == model.RoleStudent {
+					var cl model.Class
+					_ = db.Collection("classes").FindOne(ctx, bson.M{"schoolId": demoSchoolID}).Decode(&cl)
+					nis := su.NIS
+					if nis == "" {
+						nis = "NIS" + u.ID.Hex()[:6]
+					}
+					enrollYear := su.EnrollmentYear
+					if enrollYear == 0 {
+						enrollYear = time.Now().Year()
+					}
+					st := &model.Student{
+						SchoolID:       demoSchoolID,
+						UserID:         u.ID,
+						NIS:            nis,
+						NISN:           su.NISN,
+						Gender:         su.Gender,
+						BirthPlace:     su.BirthPlace,
+						BirthDate:      su.BirthDate,
+						Address:        su.Address,
+						ParentName:     su.ParentName,
+						ParentPhone:    su.ParentPhone,
+						EnrollmentYear: enrollYear,
+						PhotoURL:       "",
+						ClassID:        cl.ID,
+						Status:         "active",
+						CreatedAt:      time.Now(),
+						UpdatedAt:      time.Now(),
+					}
+					_, _ = db.Collection("students").InsertOne(ctx, st)
+				}
 				continue
 			}
-
-			// ----- UPDATE existing user when they lack a SchoolID -----
+			// teacher creation for new user
+			if su.Role == model.RoleTeacher {
+				_ = teacherRepo.Create(ctx, &model.Teacher{UserID: u.ID, NIP: "19850101" + u.ID.Hex()[:6], IsWalas: su.IsWalas})
+			}
 			if existing.SchoolID.IsZero() {
-				// Set the proper SchoolID via an update call
-				if err := userRepo.UpdateSchoolID(ctx, existing.ID, demoSchoolID); err != nil {
-					log.Printf("failed to set schoolId for user %s: %v", su.Username, err)
-				} else {
-					log.Printf("user %s patched with schoolId %s", su.Username, demoSchoolID.Hex())
+				updates["schoolId"] = demoSchoolID
+			}
+			_, _ = db.Collection("users").UpdateOne(ctx, bson.M{"_id": existing.ID}, bson.M{"$set": updates})
+
+			// Ensure student profile exists and conforms to model.Student
+			if su.Role == model.RoleStudent {
+				var count int64
+				count, _ = db.Collection("students").CountDocuments(ctx, bson.M{"userId": existing.ID})
+				nis := su.NIS
+				if nis == "" {
+					nis = "NIS" + existing.ID.Hex()[:6]
 				}
+				enrollYear := su.EnrollmentYear
+				if enrollYear == 0 {
+					enrollYear = time.Now().Year()
+				}
+
+				if count == 0 {
+					var cl model.Class
+					_ = db.Collection("classes").FindOne(ctx, bson.M{"schoolId": demoSchoolID}).Decode(&cl)
+					st := &model.Student{
+						SchoolID:       demoSchoolID,
+						UserID:         existing.ID,
+						NIS:            nis,
+						NISN:           su.NISN,
+						Gender:         su.Gender,
+						BirthPlace:     su.BirthPlace,
+						BirthDate:      su.BirthDate,
+						Address:        su.Address,
+						ParentName:     su.ParentName,
+						ParentPhone:    su.ParentPhone,
+						EnrollmentYear: enrollYear,
+						PhotoURL:       "",
+						ClassID:        cl.ID,
+						Status:         "active",
+						CreatedAt:      time.Now(),
+						UpdatedAt:      time.Now(),
+					}
+					_, _ = db.Collection("students").InsertOne(ctx, st)
+					log.Printf("Created missing student profile for user %s with class %s", su.Username, cl.Name)
+				} else {
+					// Ensure student fields match model.Student
+					updateFields := bson.M{
+						"status":         "active",
+						"updatedAt":      time.Now(),
+						"schoolId":       demoSchoolID,
+						"nis":            nis,
+						"nisn":           su.NISN,
+						"gender":         su.Gender,
+						"birthPlace":     su.BirthPlace,
+						"birthDate":      su.BirthDate,
+						"address":        su.Address,
+						"parentName":     su.ParentName,
+						"parentPhone":    su.ParentPhone,
+						"enrollmentYear": enrollYear,
+					}
+					_, _ = db.Collection("students").UpdateOne(ctx, bson.M{"userId": existing.ID}, bson.M{"$set": updateFields})
+					log.Printf("Updated student profile for user %s with model.Student fields", su.Username)
+				}
+				_, _ = db.Collection("students").InsertOne(ctx, st)
 			}
+			continue
 		}
 
-		// Seed 3 Mata Pelajaran Dasar jika kosong
-		subjectRepo := repository.NewSubjectRepository(db)
-		initialSubjects := []model.Subject{
-			{Code: "MTK-WJB", Name: "Matematika Wajib", Category: "Umum", GradeLevel: "Semua Tingkat", KKM: 75, Status: "active", Description: "Penguasaan logika matematika, kalkulus, dan aljabar"},
-			{Code: "IND-WJB", Name: "Bahasa Indonesia", Category: "Umum", GradeLevel: "Semua Tingkat", KKM: 75, Status: "active", Description: "Literasi teks analitis, eksposisi, dan karya ilmiah"},
-			{Code: "ENG-WJB", Name: "Bahasa Inggris", Category: "Umum", GradeLevel: "Semua Tingkat", KKM: 75, Status: "active", Description: "Komunikasi aktif bahasa Inggris lisan dan tulisan"},
+		// ----- UPDATE existing user: ensure active and school ID -----
+		updates := bson.M{
+			"isActive": true,
 		}
-		for _, is := range initialSubjects {
-			if ex, _ := subjectRepo.FindByCode(ctx, is.Code); ex == nil {
-				_ = subjectRepo.Create(ctx, &is)
-				log.Printf("Seeded subject: %s (%s)", is.Name, is.Code)
+		if existing.SchoolID.IsZero() {
+			updates["schoolId"] = demoSchoolID
+		}
+		_, _ = db.Collection("users").UpdateOne(ctx, bson.M{"_id": existing.ID}, bson.M{"$set": updates})
+
+		// Ensure student profile exists for student role
+		if su.Role == model.RoleStudent {
+			var count int64
+			count, _ = db.Collection("students").CountDocuments(ctx, bson.M{"userId": existing.ID})
+			if count == 0 {
+				var cl model.Class
+				_ = db.Collection("classes").FindOne(ctx, bson.M{"schoolId": demoSchoolID}).Decode(&cl)
+				st := &model.Student{
+					SchoolID:  demoSchoolID,
+					UserID:    existing.ID,
+					NIS:       "NIS" + existing.ID.Hex()[:6],
+					ClassID:   cl.ID,
+					Status:    "active",
+					CreatedAt: time.Now(),
+					UpdatedAt: time.Now(),
+				}
+				_, _ = db.Collection("students").InsertOne(ctx, st)
+				log.Printf("Created missing student profile for user %s with class %s", su.Username, cl.Name)
+			} else {
+				// Ensure status is active
+				_, _ = db.Collection("students").UpdateOne(ctx, bson.M{"userId": existing.ID}, bson.M{"$set": bson.M{"status": "active"}})
 			}
 		}
-
-		log.Println("Seeding development completed successfully!")
 	}
 
+	// Seed 3 Mata Pelajaran Dasar jika kosong
+	subjectRepo := repository.NewSubjectRepository(db)
+	initialSubjects := []model.Subject{
+		{Code: "MTK-WJB", Name: "Matematika Wajib", Category: "Umum", GradeLevel: "Semua Tingkat", KKM: 75, Status: "active", Description: "Penguasaan logika matematika, kalkulus, dan aljabar"},
+		{Code: "IND-WJB", Name: "Bahasa Indonesia", Category: "Umum", GradeLevel: "Semua Tingkat", KKM: 75, Status: "active", Description: "Literasi teks analitis, eksposisi, dan karya ilmiah"},
+		{Code: "ENG-WJB", Name: "Bahasa Inggris", Category: "Umum", GradeLevel: "Semua Tingkat", KKM: 75, Status: "active", Description: "Komunikasi aktif bahasa Inggris lisan dan tulisan"},
+	}
+	for _, is := range initialSubjects {
+		if ex, _ := subjectRepo.FindByCode(ctx, is.Code); ex == nil {
+			_ = subjectRepo.Create(ctx, &is)
+			log.Printf("Seeded subject: %s (%s)", is.Name, is.Code)
+		}
+	}
+
+	log.Println("Seeding development completed successfully!")
+}

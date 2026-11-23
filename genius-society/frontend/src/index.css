@@ -22,6 +22,19 @@
   --gs-dash-border: 235 212 197; /* #EBD4C5 */
   --gs-dash-text: 48 37 29; /* #30251D */
   --gs-dash-primary: 255 152 0; /* #FF9800 */
+
+  /* Student & General Design Tokens */
+  --color-bg-page: #FFF8F5;
+  --color-surface: #FFFFFF;
+  --color-primary: #FF9800;
+  --color-primary-soft: #FEEADC;
+  --color-border: #EBD4C5;
+  --color-text-primary: #30251D;
+  --color-text-secondary: #687385;
+  --color-bg-landing: #F8F9FA;
+  --color-bg-login: #F1F1F3;
+  --color-cta-orange: #FF9500;
+  --color-navy: #0B2447;
 }
 
 html {
