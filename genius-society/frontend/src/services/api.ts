@@ -18,6 +18,8 @@ export interface User {
   role: 'super_admin' | 'admin' | 'teacher' | 'student' | 'curriculum' | 'principal'
   isActive: boolean
   schoolID?: string
+  isWalas?: boolean
+  is_walas?: boolean
 }
 
 export interface ApiResponse<T> {

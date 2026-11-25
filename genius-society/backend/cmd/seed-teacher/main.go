@@ -128,6 +128,9 @@ func main() {
 		var cl model.Class
 		err := classesColl.FindOne(ctx, filter).Decode(&cl)
 		if err == nil {
+			// Ensure existing seeded classes are active
+			_, _ = classesColl.UpdateOne(ctx, bson.M{"_id": cl.ID}, bson.M{"$set": bson.M{"status": "active", "updatedAt": time.Now()}})
+			cl.Status = "active"
 			classes[name] = &cl
 		} else {
 			newClass := &model.Class{

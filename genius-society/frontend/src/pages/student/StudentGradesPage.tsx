@@ -22,6 +22,7 @@ export default function StudentGradesPage() {
         if (isMounted) {
           const msg = err instanceof Error ? err.message : 'Gagal memuat rekap nilai'
           setError(msg)
+          setGrades([])
         }
       } finally {
         if (isMounted) setLoading(false)

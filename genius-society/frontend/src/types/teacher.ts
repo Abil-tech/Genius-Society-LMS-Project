@@ -66,6 +66,7 @@ export interface TeacherClass {
   department?: string
   academicYearId?: string
   studentCount?: number
+  status?: string
   subjects?: Array<{ id: string; name: string }>
 }
 

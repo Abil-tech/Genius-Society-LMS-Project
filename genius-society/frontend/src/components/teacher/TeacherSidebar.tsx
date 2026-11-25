@@ -53,14 +53,11 @@ export default function TeacherSidebar({
   const { user, logout } = useAuth()
   const navigate = useNavigate()
 
-  // Guru isWalas can come from user object or override from dashboard
+  // Guru isWalas can come from user object directly — no need for override prop
   const isWalas =
     isWalasOverride !== undefined
       ? isWalasOverride
-      : Boolean(
-          (user as unknown as Record<string, unknown> | null)?.isWalas ??
-            (user as unknown as Record<string, unknown> | null)?.is_walas
-        )
+      : Boolean(user?.isWalas ?? user?.is_walas)
 
   const handleLogout = async () => {
     try {

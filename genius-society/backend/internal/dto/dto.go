@@ -21,6 +21,7 @@ type UserResponse struct {
 	Username string     `json:"username"`
 	Role     model.Role `json:"role"`
 	IsActive bool       `json:"isActive"`
+	IsWalas  bool       `json:"isWalas"`
 }
 
 type CreateUserRequest struct {

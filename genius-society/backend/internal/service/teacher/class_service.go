@@ -111,6 +111,7 @@ func (s *classServiceImpl) GetClasses(ctx context.Context, scope *middleware.Tea
 			StudentCount:   studentCount,
 			Subjects:       subjects,
 			IsWalas:        scope.IsWalasOf(cl.ID),
+			Status:         cl.Status,
 		})
 	}
 
@@ -177,6 +178,7 @@ func (s *classServiceImpl) GetClassDetail(ctx context.Context, scope *middleware
 		StudentCount:   studentCount,
 		Subjects:       subjects,
 		IsWalas:        scope.IsWalasOf(cl.ID),
+		Status:         cl.Status,
 	}, nil
 }
 

@@ -2,7 +2,7 @@ import { api } from '../api'
 import type { Grade, SubjectGradeDetail } from '../../types/student'
 
 export const getGrades = async (): Promise<Grade[]> => {
-  const res = await api.get<{ data: Grade[] }>('/student/grades')
+  const res = await api.get<{ data: Grade[] | null }>('/student/grades')
   return res.data?.data ?? []
 }
 

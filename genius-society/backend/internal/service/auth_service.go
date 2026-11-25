@@ -108,3 +108,14 @@ func (s *AuthService) GetUserByID(ctx context.Context, id string) (*model.User, 
 	}
 	return s.userRepo.FindByID(ctx, oid)
 }
+
+func (s *AuthService) IsUserWalas(ctx context.Context, user *model.User) bool {
+	if user == nil || user.Role != model.RoleTeacher {
+		return false
+	}
+	teacher, err := s.teacherRepo.FindByUserID(ctx, user.ID)
+	if err != nil || teacher == nil {
+		return false
+	}
+	return teacher.IsWalas && len(teacher.WalasClassIDs) > 0
+}

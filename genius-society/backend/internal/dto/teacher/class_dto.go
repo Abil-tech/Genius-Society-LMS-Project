@@ -18,6 +18,7 @@ type TeacherClassDTO struct {
 	StudentCount   int64          `json:"studentCount"`
 	Subjects       []SubjectBrief `json:"subjects"`
 	IsWalas        bool           `json:"isWalas"`
+	Status         string         `json:"status,omitempty"`
 }
 
 // TeacherStudentDTO represents a student in a teacher's class view.

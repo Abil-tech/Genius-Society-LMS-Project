@@ -52,6 +52,8 @@ func (h *AuthHandler) Login(c *gin.Context) {
 	c.SetCookie("token", token, int(24*time.Hour/time.Second), "/", h.cfg.CookieDomain, secure, true)
 	c.SetSameSite(sameSite)
 
+	isWalas := h.authSvc.IsUserWalas(c.Request.Context(), user)
+
 	c.JSON(http.StatusOK, dto.SuccessResponse{
 		Success: true,
 		Data: dto.UserResponse{
@@ -61,6 +63,7 @@ func (h *AuthHandler) Login(c *gin.Context) {
 			Username: user.Username,
 			Role:     user.Role,
 			IsActive: user.IsActive,
+			IsWalas:  isWalas,
 		},
 	})
 }
@@ -83,6 +86,8 @@ func (h *AuthHandler) Me(c *gin.Context) {
 		return
 	}
 
+	isWalas := h.authSvc.IsUserWalas(c.Request.Context(), user)
+
 	c.JSON(http.StatusOK, dto.SuccessResponse{
 		Success: true,
 		Data: dto.UserResponse{
@@ -92,6 +97,7 @@ func (h *AuthHandler) Me(c *gin.Context) {
 			Username: user.Username,
 			Role:     user.Role,
 			IsActive: user.IsActive,
+			IsWalas:  isWalas,
 		},
 	})
 }

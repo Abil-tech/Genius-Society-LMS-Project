@@ -45,6 +45,7 @@ func (r *classRepoImpl) FindClassesByIDs(ctx context.Context, schoolID bson.Obje
 	filter := bson.M{
 		"_id":      bson.M{"$in": classIDs},
 		"schoolId": schoolID,
+		"status":   "active",
 	}
 
 	opts := options.Find().SetSort(bson.D{{Key: "name", Value: 1}})

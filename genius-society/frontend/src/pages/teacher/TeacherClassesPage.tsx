@@ -19,7 +19,8 @@ export default function TeacherClassesPage() {
     try {
       const res = await getTeacherClasses()
       if (res.success && res.data) {
-        setClasses(res.data)
+        // Hanya tampilkan kelas yang aktif
+        setClasses(res.data.filter((c) => c.status !== 'archived'))
       } else {
         setError(res.error?.message || 'Gagal mengambil daftar kelas.')
       }

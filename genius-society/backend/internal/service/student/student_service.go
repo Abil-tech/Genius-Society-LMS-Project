@@ -1326,7 +1326,7 @@ func (s *studentServiceImpl) GetGrades(ctx context.Context, scope *middleware.St
 
 	subMap, _ := s.repo.FindSubjectsMap(ctx, subjectIDs)
 
-	var results []studentdto.SubjectGradeDTO
+	var results []studentdto.SubjectGradeDTO = make([]studentdto.SubjectGradeDTO, 0)
 	for _, sid := range subjectIDs {
 		sub, ok := subMap[sid]
 		if !ok || sub == nil {

@@ -56,8 +56,8 @@ export default function TeacherDashboardPage() {
   // Is the teacher a Walas?
   const isWalas = Boolean(
     data?.isWalas ||
-      (user as unknown as Record<string, unknown> | null)?.isWalas ||
-      (user as unknown as Record<string, unknown> | null)?.is_walas
+      user?.isWalas ||
+      user?.is_walas
   )
 
   const kpi = data?.kpi || {
