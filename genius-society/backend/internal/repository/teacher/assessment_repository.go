@@ -14,12 +14,12 @@ import (
 
 // AssessmentRepository defines database operations for assessments, questions, attempts, and answers.
 type AssessmentRepository interface {
-	FindAssessments(ctx context.Context, schoolID, teacherID bson.ObjectID, classID, subjectID *bson.ObjectID, search string, page, limit int64) ([]*model.Assessment, int64, error)
-	FindAssessmentByID(ctx context.Context, schoolID, teacherID, id bson.ObjectID) (*model.Assessment, error)
+	FindAssessments(ctx context.Context, teacherID bson.ObjectID, classID, subjectID *bson.ObjectID, search string, page, limit int64) ([]*model.Assessment, int64, error)
+	FindAssessmentByID(ctx context.Context, teacherID, id bson.ObjectID) (*model.Assessment, error)
 	CreateAssessment(ctx context.Context, a *model.Assessment) error
 	UpdateAssessment(ctx context.Context, a *model.Assessment) error
-	DeleteAssessment(ctx context.Context, schoolID, teacherID, id bson.ObjectID) error
-	CountAttemptsByAssessmentID(ctx context.Context, schoolID, assessmentID bson.ObjectID) (int64, error)
+	DeleteAssessment(ctx context.Context, teacherID, id bson.ObjectID) error
+	CountAttemptsByAssessmentID(ctx context.Context, assessmentID bson.ObjectID) (int64, error)
 
 	FindQuestions(ctx context.Context, assessmentID bson.ObjectID) ([]*model.AssessmentQuestion, error)
 	FindQuestionByID(ctx context.Context, assessmentID, questionID bson.ObjectID) (*model.AssessmentQuestion, error)
@@ -28,21 +28,21 @@ type AssessmentRepository interface {
 	DeleteQuestion(ctx context.Context, assessmentID, questionID bson.ObjectID) error
 	ReorderQuestions(ctx context.Context, assessmentID bson.ObjectID, orders map[bson.ObjectID]int) error
 
-	FindAttempts(ctx context.Context, schoolID, assessmentID bson.ObjectID) ([]*model.AssessmentAttempt, error)
-	FindAttemptByID(ctx context.Context, schoolID, attemptID bson.ObjectID) (*model.AssessmentAttempt, error)
+	FindAttempts(ctx context.Context, assessmentID bson.ObjectID) ([]*model.AssessmentAttempt, error)
+	FindAttemptByID(ctx context.Context, attemptID bson.ObjectID) (*model.AssessmentAttempt, error)
 	UpdateAttempt(ctx context.Context, attempt *model.AssessmentAttempt) error
 
 	FindAnswersByAttemptID(ctx context.Context, attemptID bson.ObjectID) ([]*model.AssessmentAnswer, error)
 	FindAnswerByID(ctx context.Context, answerID bson.ObjectID) (*model.AssessmentAnswer, error)
 
-	FindStudentsByClassIDs(ctx context.Context, schoolID bson.ObjectID, classIDs []bson.ObjectID) ([]*model.Student, error)
-	FindStudentByID(ctx context.Context, schoolID, studentID bson.ObjectID) (*model.Student, error)
+	FindStudentsByClassIDs(ctx context.Context, classIDs []bson.ObjectID) ([]*model.Student, error)
+	FindStudentByID(ctx context.Context, studentID bson.ObjectID) (*model.Student, error)
 	FindUsersMap(ctx context.Context, userIDs []bson.ObjectID) (map[bson.ObjectID]*model.User, error)
-	FindClassesMap(ctx context.Context, schoolID bson.ObjectID, classIDs []bson.ObjectID) (map[bson.ObjectID]*model.Class, error)
+	FindClassesMap(ctx context.Context, classIDs []bson.ObjectID) (map[bson.ObjectID]*model.Class, error)
 	FindSubjectsMap(ctx context.Context, subjectIDs []bson.ObjectID) (map[bson.ObjectID]*model.Subject, error)
 
-	GradeEssayInTransaction(ctx context.Context, schoolID, teacherID bson.ObjectID, answer *model.AssessmentAnswer, attempt *model.AssessmentAttempt, grade *model.Grade, audit *model.AuditLog) error
-	RegradeMCQInTransaction(ctx context.Context, schoolID, teacherID bson.ObjectID, question *model.AssessmentQuestion, attempts []*model.AssessmentAttempt, answers []*model.AssessmentAnswer, grades []*model.Grade, audit *model.AuditLog) error
+	GradeEssayInTransaction(ctx context.Context, teacherID bson.ObjectID, answer *model.AssessmentAnswer, attempt *model.AssessmentAttempt, grade *model.Grade, audit *model.AuditLog) error
+	RegradeMCQInTransaction(ctx context.Context, teacherID bson.ObjectID, question *model.AssessmentQuestion, attempts []*model.AssessmentAttempt, answers []*model.AssessmentAnswer, grades []*model.Grade, audit *model.AuditLog) error
 }
 
 type assessmentRepoImpl struct {
@@ -76,9 +76,9 @@ func NewAssessmentRepository(db *mongo.Database) AssessmentRepository {
 	}
 }
 
-func (r *assessmentRepoImpl) FindAssessments(ctx context.Context, schoolID, teacherID bson.ObjectID, classID, subjectID *bson.ObjectID, search string, page, limit int64) ([]*model.Assessment, int64, error) {
+func (r *assessmentRepoImpl) FindAssessments(ctx context.Context, teacherID bson.ObjectID, classID, subjectID *bson.ObjectID, search string, page, limit int64) ([]*model.Assessment, int64, error) {
 	filter := bson.M{
-		"schoolId":  schoolID,
+		
 		"teacherId": teacherID,
 	}
 	if classID != nil && !classID.IsZero() {
@@ -116,10 +116,10 @@ func (r *assessmentRepoImpl) FindAssessments(ctx context.Context, schoolID, teac
 	return list, total, nil
 }
 
-func (r *assessmentRepoImpl) FindAssessmentByID(ctx context.Context, schoolID, teacherID, id bson.ObjectID) (*model.Assessment, error) {
+func (r *assessmentRepoImpl) FindAssessmentByID(ctx context.Context, teacherID, id bson.ObjectID) (*model.Assessment, error) {
 	filter := bson.M{
 		"_id":       id,
-		"schoolId":  schoolID,
+		
 		"teacherId": teacherID,
 	}
 	var a model.Assessment
@@ -147,17 +147,17 @@ func (r *assessmentRepoImpl) CreateAssessment(ctx context.Context, a *model.Asse
 func (r *assessmentRepoImpl) UpdateAssessment(ctx context.Context, a *model.Assessment) error {
 	filter := bson.M{
 		"_id":       a.ID,
-		"schoolId":  a.SchoolID,
+		
 		"teacherId": a.TeacherID,
 	}
 	_, err := r.assessments.ReplaceOne(ctx, filter, a)
 	return err
 }
 
-func (r *assessmentRepoImpl) DeleteAssessment(ctx context.Context, schoolID, teacherID, id bson.ObjectID) error {
+func (r *assessmentRepoImpl) DeleteAssessment(ctx context.Context, teacherID, id bson.ObjectID) error {
 	filter := bson.M{
 		"_id":       id,
-		"schoolId":  schoolID,
+		
 		"teacherId": teacherID,
 	}
 	res, err := r.assessments.DeleteOne(ctx, filter)
@@ -172,10 +172,10 @@ func (r *assessmentRepoImpl) DeleteAssessment(ctx context.Context, schoolID, tea
 	return nil
 }
 
-func (r *assessmentRepoImpl) CountAttemptsByAssessmentID(ctx context.Context, schoolID, assessmentID bson.ObjectID) (int64, error) {
+func (r *assessmentRepoImpl) CountAttemptsByAssessmentID(ctx context.Context, assessmentID bson.ObjectID) (int64, error) {
 	filter := bson.M{
 		"assessmentId": assessmentID,
-		"schoolId":     schoolID,
+		
 	}
 	return r.attempts.CountDocuments(ctx, filter)
 }
@@ -266,10 +266,10 @@ func (r *assessmentRepoImpl) ReorderQuestions(ctx context.Context, assessmentID 
 	return nil
 }
 
-func (r *assessmentRepoImpl) FindAttempts(ctx context.Context, schoolID, assessmentID bson.ObjectID) ([]*model.AssessmentAttempt, error) {
+func (r *assessmentRepoImpl) FindAttempts(ctx context.Context, assessmentID bson.ObjectID) ([]*model.AssessmentAttempt, error) {
 	filter := bson.M{
 		"assessmentId": assessmentID,
-		"schoolId":     schoolID,
+		
 	}
 	opts := options.Find().SetSort(bson.D{{Key: "attemptNumber", Value: -1}, {Key: "createdAt", Value: -1}})
 	cur, err := r.attempts.Find(ctx, filter, opts)
@@ -285,10 +285,10 @@ func (r *assessmentRepoImpl) FindAttempts(ctx context.Context, schoolID, assessm
 	return list, nil
 }
 
-func (r *assessmentRepoImpl) FindAttemptByID(ctx context.Context, schoolID, attemptID bson.ObjectID) (*model.AssessmentAttempt, error) {
+func (r *assessmentRepoImpl) FindAttemptByID(ctx context.Context, attemptID bson.ObjectID) (*model.AssessmentAttempt, error) {
 	filter := bson.M{
 		"_id":      attemptID,
-		"schoolId": schoolID,
+		
 	}
 	var at model.AssessmentAttempt
 	err := r.attempts.FindOne(ctx, filter).Decode(&at)
@@ -338,12 +338,12 @@ func (r *assessmentRepoImpl) FindAnswerByID(ctx context.Context, answerID bson.O
 	return &a, nil
 }
 
-func (r *assessmentRepoImpl) FindStudentsByClassIDs(ctx context.Context, schoolID bson.ObjectID, classIDs []bson.ObjectID) ([]*model.Student, error) {
+func (r *assessmentRepoImpl) FindStudentsByClassIDs(ctx context.Context, classIDs []bson.ObjectID) ([]*model.Student, error) {
 	if len(classIDs) == 0 {
 		return []*model.Student{}, nil
 	}
 	filter := bson.M{
-		"schoolId": schoolID,
+		
 		"classId":  bson.M{"$in": classIDs},
 		"status":   "active",
 	}
@@ -360,10 +360,10 @@ func (r *assessmentRepoImpl) FindStudentsByClassIDs(ctx context.Context, schoolI
 	return list, nil
 }
 
-func (r *assessmentRepoImpl) FindStudentByID(ctx context.Context, schoolID, studentID bson.ObjectID) (*model.Student, error) {
+func (r *assessmentRepoImpl) FindStudentByID(ctx context.Context, studentID bson.ObjectID) (*model.Student, error) {
 	filter := bson.M{
 		"_id":      studentID,
-		"schoolId": schoolID,
+		
 	}
 	var s model.Student
 	err := r.students.FindOne(ctx, filter).Decode(&s)
@@ -396,14 +396,14 @@ func (r *assessmentRepoImpl) FindUsersMap(ctx context.Context, userIDs []bson.Ob
 	return result, nil
 }
 
-func (r *assessmentRepoImpl) FindClassesMap(ctx context.Context, schoolID bson.ObjectID, classIDs []bson.ObjectID) (map[bson.ObjectID]*model.Class, error) {
+func (r *assessmentRepoImpl) FindClassesMap(ctx context.Context, classIDs []bson.ObjectID) (map[bson.ObjectID]*model.Class, error) {
 	result := make(map[bson.ObjectID]*model.Class)
 	if len(classIDs) == 0 {
 		return result, nil
 	}
 	filter := bson.M{
 		"_id":      bson.M{"$in": classIDs},
-		"schoolId": schoolID,
+		
 	}
 	cur, err := r.classes.Find(ctx, filter)
 	if err != nil {
@@ -439,7 +439,7 @@ func (r *assessmentRepoImpl) FindSubjectsMap(ctx context.Context, subjectIDs []b
 	return result, nil
 }
 
-func (r *assessmentRepoImpl) GradeEssayInTransaction(ctx context.Context, schoolID, teacherID bson.ObjectID, answer *model.AssessmentAnswer, attempt *model.AssessmentAttempt, grade *model.Grade, audit *model.AuditLog) error {
+func (r *assessmentRepoImpl) GradeEssayInTransaction(ctx context.Context, teacherID bson.ObjectID, answer *model.AssessmentAnswer, attempt *model.AssessmentAttempt, grade *model.Grade, audit *model.AuditLog) error {
 	executeOps := func(sc context.Context) error {
 		// 1. Update answer
 		now := time.Now().UTC()
@@ -456,7 +456,7 @@ func (r *assessmentRepoImpl) GradeEssayInTransaction(ctx context.Context, school
 		}
 
 		// 2. Update attempt
-		attFilter := bson.M{"_id": attempt.ID, "schoolId": schoolID}
+		attFilter := bson.M{"_id": attempt.ID}
 		attUpdate := bson.M{
 			"$set": bson.M{
 				"manualScore": attempt.ManualScore,
@@ -482,7 +482,7 @@ func (r *assessmentRepoImpl) GradeEssayInTransaction(ctx context.Context, school
 			gradeUpdate := bson.M{
 				"$set": bson.M{
 					"score":     grade.Score,
-					"schoolId":  schoolID,
+					
 					"teacherId": teacherID,
 					"classId":   grade.ClassID,
 					"source":    grade.Source,
@@ -521,7 +521,7 @@ func (r *assessmentRepoImpl) GradeEssayInTransaction(ctx context.Context, school
 	return err
 }
 
-func (r *assessmentRepoImpl) RegradeMCQInTransaction(ctx context.Context, schoolID, teacherID bson.ObjectID, question *model.AssessmentQuestion, attempts []*model.AssessmentAttempt, answers []*model.AssessmentAnswer, grades []*model.Grade, audit *model.AuditLog) error {
+func (r *assessmentRepoImpl) RegradeMCQInTransaction(ctx context.Context, teacherID bson.ObjectID, question *model.AssessmentQuestion, attempts []*model.AssessmentAttempt, answers []*model.AssessmentAnswer, grades []*model.Grade, audit *model.AuditLog) error {
 	executeOps := func(sc context.Context) error {
 		now := time.Now().UTC()
 

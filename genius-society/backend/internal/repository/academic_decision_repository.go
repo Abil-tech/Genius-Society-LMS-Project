@@ -47,18 +47,18 @@ func (r *AcademicDecisionRepository) BulkCreate(ctx context.Context, decisions [
 	return err
 }
 
-func (r *AcademicDecisionRepository) FindByID(ctx context.Context, schoolID, id bson.ObjectID) (*model.AcademicDecision, error) {
+func (r *AcademicDecisionRepository) FindByID(ctx context.Context, id bson.ObjectID) (*model.AcademicDecision, error) {
 	var d model.AcademicDecision
-	filter := bson.M{"_id": id, "schoolId": schoolID}
+	filter := bson.M{"_id": id}
 	if err := r.coll.FindOne(ctx, filter).Decode(&d); err != nil {
 		return nil, err
 	}
 	return &d, nil
 }
 
-func (r *AcademicDecisionRepository) FindSuspendedByYear(ctx context.Context, schoolID, academicYearID bson.ObjectID) ([]*model.AcademicDecision, error) {
+func (r *AcademicDecisionRepository) FindSuspendedByYear(ctx context.Context, academicYearID bson.ObjectID) ([]*model.AcademicDecision, error) {
 	filter := bson.M{
-		"schoolId":             schoolID,
+		
 		"sourceAcademicYearId": academicYearID,
 		"decisionStatus":       model.DecisionStatusSuspended,
 		"reviewStatus":         bson.M{"$ne": model.ReviewStatusResolved},
@@ -75,10 +75,10 @@ func (r *AcademicDecisionRepository) FindSuspendedByYear(ctx context.Context, sc
 	return list, nil
 }
 
-func (r *AcademicDecisionRepository) FindByStudentAndYear(ctx context.Context, schoolID, studentID, sourceYearID bson.ObjectID) (*model.AcademicDecision, error) {
+func (r *AcademicDecisionRepository) FindByStudentAndYear(ctx context.Context, studentID, sourceYearID bson.ObjectID) (*model.AcademicDecision, error) {
 	var d model.AcademicDecision
 	filter := bson.M{
-		"schoolId":             schoolID,
+		
 		"studentId":            studentID,
 		"sourceAcademicYearId": sourceYearID,
 	}
@@ -89,9 +89,9 @@ func (r *AcademicDecisionRepository) FindByStudentAndYear(ctx context.Context, s
 	return &d, nil
 }
 
-func (r *AcademicDecisionRepository) Update(ctx context.Context, schoolID, id bson.ObjectID, update bson.M) error {
+func (r *AcademicDecisionRepository) Update(ctx context.Context, id bson.ObjectID, update bson.M) error {
 	update["updatedAt"] = time.Now()
-	filter := bson.M{"_id": id, "schoolId": schoolID}
+	filter := bson.M{"_id": id}
 	_, err := r.coll.UpdateOne(ctx, filter, bson.M{"$set": update})
 	return err
 }

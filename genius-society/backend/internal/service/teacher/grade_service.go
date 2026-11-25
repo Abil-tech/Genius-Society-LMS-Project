@@ -40,7 +40,7 @@ func (s *gradeServiceImpl) GetGrades(ctx context.Context, scope *middleware.Teac
 	}
 
 	// 2. Fetch students in the class
-	students, err := s.repo.FindStudentsByClassID(ctx, scope.SchoolID, classID)
+	students, err := s.repo.FindStudentsByClassID(ctx, classID)
 	if err != nil {
 		return nil, err
 	}
@@ -58,7 +58,7 @@ func (s *gradeServiceImpl) GetGrades(ctx context.Context, scope *middleware.Teac
 	userMap, _ := s.repo.FindUsersByIDs(ctx, userIDs)
 
 	// 4. Fetch grades for this class & subject
-	grades, err := s.repo.FindGradesByClassSubject(ctx, scope.SchoolID, classID, subjectID, scope.AcademicYearID)
+	grades, err := s.repo.FindGradesByClassSubject(ctx, classID, subjectID, scope.AcademicYearID)
 	if err != nil {
 		return nil, err
 	}
@@ -67,7 +67,7 @@ func (s *gradeServiceImpl) GetGrades(ctx context.Context, scope *middleware.Teac
 	dailyWeight := 0.6
 	utsWeight := 0.2
 	uasWeight := 0.2
-	cfg, _ := s.repo.FindGradingConfig(ctx, scope.SchoolID, scope.AcademicYearID, subjectID)
+	cfg, _ := s.repo.FindGradingConfig(ctx, scope.AcademicYearID, subjectID)
 	if cfg != nil && (cfg.DailyWeight+cfg.UTSWeight+cfg.UASWeight) > 0 {
 		totalW := cfg.DailyWeight + cfg.UTSWeight + cfg.UASWeight
 		dailyWeight = cfg.DailyWeight / totalW
@@ -234,7 +234,6 @@ func (s *gradeServiceImpl) UpdateGrade(ctx context.Context, scope *middleware.Te
 	}
 
 	gradeModel := &model.Grade{
-		SchoolID:       scope.SchoolID,
 		StudentID:      studentID,
 		SubjectID:      subjectID,
 		ClassID:        classID,
@@ -329,7 +328,7 @@ func (s *gradeServiceImpl) InputSTSExams(ctx context.Context, scope *middleware.
 	}
 
 	// Validate all students belong to the class
-	students, err := s.repo.FindStudentsByClassID(ctx, scope.SchoolID, classID)
+	students, err := s.repo.FindStudentsByClassID(ctx, classID)
 	if err != nil {
 		return err
 	}
@@ -361,7 +360,7 @@ func (s *gradeServiceImpl) InputSTSExams(ctx context.Context, scope *middleware.
 		}
 
 		// Max 1 STS per student-subject-semester: duplicate check
-		existing, err := s.repo.FindExistingExamGrade(ctx, scope.SchoolID, stID, subjectID, scope.AcademicYearID, semester, model.GradeUTS)
+		existing, err := s.repo.FindExistingExamGrade(ctx, stID, subjectID, scope.AcademicYearID, semester, model.GradeUTS)
 		if err != nil {
 			return err
 		}
@@ -370,7 +369,6 @@ func (s *gradeServiceImpl) InputSTSExams(ctx context.Context, scope *middleware.
 		}
 
 		g := &model.Grade{
-			SchoolID:       scope.SchoolID,
 			StudentID:      stID,
 			SubjectID:      subjectID,
 			ClassID:        classID,
@@ -386,7 +384,6 @@ func (s *gradeServiceImpl) InputSTSExams(ctx context.Context, scope *middleware.
 
 		audit := &model.AuditLog{
 			ID:         bson.NewObjectID(),
-			SchoolID:   scope.SchoolID,
 			UserID:     scope.UserID,
 			Action:     "input_sts_exam",
 			EntityType: "grade",
@@ -403,7 +400,7 @@ func (s *gradeServiceImpl) InputSTSExams(ctx context.Context, scope *middleware.
 		audits = append(audits, audit)
 	}
 
-	return s.repo.BulkUpsertSTS(ctx, scope.SchoolID, scope.TeacherID, grades, audits)
+	return s.repo.BulkUpsertSTS(ctx, scope.TeacherID, grades, audits)
 }
 
 func (s *gradeServiceImpl) SetManualGrade(ctx context.Context, scope *middleware.TeacherScope, itemType string, itemID, studentID bson.ObjectID, score float64, feedback, reason string) error {
@@ -416,7 +413,7 @@ func (s *gradeServiceImpl) SetManualGrade(ctx context.Context, scope *middleware
 	}
 
 	student, err := s.repo.FindStudentByID(ctx, studentID)
-	if err != nil || student == nil || student.SchoolID != scope.SchoolID {
+	if err != nil || student == nil {
 		return handler.ErrNotFound
 	}
 
@@ -427,14 +424,14 @@ func (s *gradeServiceImpl) SetManualGrade(ctx context.Context, scope *middleware
 
 	switch itemType {
 	case "assignment":
-		asg, err := s.repo.FindAssignment(ctx, scope.SchoolID, scope.TeacherID, itemID)
+		asg, err := s.repo.FindAssignment(ctx, scope.TeacherID, itemID)
 		if err != nil || asg == nil {
 			return handler.ErrNotFound
 		}
 		if now.Before(asg.Deadline) {
 			return handler.NewConflictError("DEADLINE_NOT_PASSED: Penilaian manual hanya dapat dilakukan setelah batas waktu pengumpulan lewat")
 		}
-		hasSub, _ := s.repo.HasAssignmentSubmission(ctx, scope.SchoolID, itemID, studentID)
+		hasSub, _ := s.repo.HasAssignmentSubmission(ctx, itemID, studentID)
 		if hasSub {
 			return handler.NewConflictError("SUBMISSION_EXISTS: Siswa sudah memiliki pengumpulan tugas")
 		}
@@ -443,14 +440,14 @@ func (s *gradeServiceImpl) SetManualGrade(ctx context.Context, scope *middleware
 		gradeType = model.GradeAssignment
 
 	case "project":
-		prj, err := s.repo.FindProject(ctx, scope.SchoolID, scope.TeacherID, itemID)
+		prj, err := s.repo.FindProject(ctx, scope.TeacherID, itemID)
 		if err != nil || prj == nil {
 			return handler.ErrNotFound
 		}
 		if now.Before(prj.Deadline) {
 			return handler.NewConflictError("DEADLINE_NOT_PASSED: Penilaian manual hanya dapat dilakukan setelah batas waktu pengumpulan lewat")
 		}
-		hasSub, _ := s.repo.HasProjectSubmission(ctx, scope.SchoolID, itemID, studentID)
+		hasSub, _ := s.repo.HasProjectSubmission(ctx, itemID, studentID)
 		if hasSub {
 			return handler.NewConflictError("SUBMISSION_EXISTS: Siswa sudah memiliki pengumpulan projek")
 		}
@@ -459,14 +456,14 @@ func (s *gradeServiceImpl) SetManualGrade(ctx context.Context, scope *middleware
 		gradeType = model.GradeProject
 
 	case "assessment":
-		asm, err := s.repo.FindAssessment(ctx, scope.SchoolID, scope.TeacherID, itemID)
+		asm, err := s.repo.FindAssessment(ctx, scope.TeacherID, itemID)
 		if err != nil || asm == nil {
 			return handler.ErrNotFound
 		}
 		if asm.EndAt != nil && now.Before(*asm.EndAt) {
 			return handler.NewConflictError("DEADLINE_NOT_PASSED: Penilaian manual hanya dapat dilakukan setelah batas waktu asesmen selesai")
 		}
-		hasAtt, _ := s.repo.HasAssessmentAttempt(ctx, scope.SchoolID, itemID, studentID)
+		hasAtt, _ := s.repo.HasAssessmentAttempt(ctx, itemID, studentID)
 		if hasAtt {
 			return handler.NewConflictError("SUBMISSION_EXISTS: Siswa sudah memiliki pengerjaan asesmen")
 		}
@@ -491,7 +488,6 @@ func (s *gradeServiceImpl) SetManualGrade(ctx context.Context, scope *middleware
 	}
 
 	grade := &model.Grade{
-		SchoolID:       scope.SchoolID,
 		StudentID:      studentID,
 		SubjectID:      subjectID,
 		ClassID:        student.ClassID,
@@ -508,7 +504,6 @@ func (s *gradeServiceImpl) SetManualGrade(ctx context.Context, scope *middleware
 
 	audit := &model.AuditLog{
 		ID:         bson.NewObjectID(),
-		SchoolID:   scope.SchoolID,
 		UserID:     scope.UserID,
 		Action:     "manual_item_grade",
 		EntityType: "grade",
@@ -532,7 +527,7 @@ func (s *gradeServiceImpl) DeleteManualGrade(ctx context.Context, scope *middlew
 		return handler.ErrUnauthorized
 	}
 
-	g, err := s.repo.FindManualItemGrade(ctx, scope.SchoolID, itemID, studentID)
+	g, err := s.repo.FindManualItemGrade(ctx, itemID, studentID)
 	if err != nil || g == nil {
 		return handler.ErrNotFound
 	}
@@ -543,7 +538,6 @@ func (s *gradeServiceImpl) DeleteManualGrade(ctx context.Context, scope *middlew
 
 	audit := &model.AuditLog{
 		ID:         bson.NewObjectID(),
-		SchoolID:   scope.SchoolID,
 		UserID:     scope.UserID,
 		Action:     "delete_manual_grade",
 		EntityType: "grade",
@@ -556,7 +550,7 @@ func (s *gradeServiceImpl) DeleteManualGrade(ctx context.Context, scope *middlew
 		Timestamp: time.Now().UTC(),
 	}
 
-	return s.repo.DeleteManualItemGrade(ctx, scope.SchoolID, itemID, studentID, audit)
+	return s.repo.DeleteManualItemGrade(ctx, itemID, studentID, audit)
 }
 
 func (s *gradeServiceImpl) GetGradeRecap(ctx context.Context, scope *middleware.TeacherScope, classID, subjectID bson.ObjectID, semester int) (*teacherdto.GradeRecapResponseDTO, error) {
@@ -587,13 +581,13 @@ func (s *gradeServiceImpl) GetGradeRecap(ctx context.Context, scope *middleware.
 	// Dynamic weight resolution
 	outcomeWeight := 50.0
 	stsWeight := 50.0
-	cfg, _ := s.repo.FindGradingConfig(ctx, scope.SchoolID, scope.AcademicYearID, subjectID)
+	cfg, _ := s.repo.FindGradingConfig(ctx, scope.AcademicYearID, subjectID)
 	if cfg != nil && (cfg.OutcomeWeight+cfg.StsWeight == 100) {
 		outcomeWeight = cfg.OutcomeWeight
 		stsWeight = cfg.StsWeight
 	}
 
-	students, err := s.repo.FindStudentsByClassID(ctx, scope.SchoolID, classID)
+	students, err := s.repo.FindStudentsByClassID(ctx, classID)
 	if err != nil {
 		return nil, err
 	}
@@ -606,12 +600,12 @@ func (s *gradeServiceImpl) GetGradeRecap(ctx context.Context, scope *middleware.
 	}
 	userMap, _ := s.repo.FindUsersByIDs(ctx, userIDs)
 
-	outcomes, err := s.repo.FindLearningOutcomesForRecap(ctx, scope.SchoolID, scope.AcademicYearID, subjectID, classID, semester)
+	outcomes, err := s.repo.FindLearningOutcomesForRecap(ctx, scope.AcademicYearID, subjectID, classID, semester)
 	if err != nil {
 		return nil, err
 	}
 
-	asgs, prjs, asms, err := s.repo.FindItemsForRecap(ctx, scope.SchoolID, scope.AcademicYearID, subjectID, classID)
+	asgs, prjs, asms, err := s.repo.FindItemsForRecap(ctx, scope.AcademicYearID, subjectID, classID)
 	if err != nil {
 		return nil, err
 	}
@@ -647,7 +641,7 @@ func (s *gradeServiceImpl) GetGradeRecap(ctx context.Context, scope *middleware.
 	}
 
 	// Fetch all grades for this class & subject & semester
-	grades, err := s.repo.FindGradesByClassSubject(ctx, scope.SchoolID, classID, subjectID, scope.AcademicYearID)
+	grades, err := s.repo.FindGradesByClassSubject(ctx, classID, subjectID, scope.AcademicYearID)
 	if err != nil {
 		return nil, err
 	}

@@ -14,20 +14,20 @@ import (
 
 // AssignmentRepository defines database operations for assignments and submissions.
 type AssignmentRepository interface {
-	FindAssignments(ctx context.Context, schoolID, teacherID bson.ObjectID, classID, subjectID *bson.ObjectID, search string, page, limit int64) ([]*model.Assignment, int64, error)
-	FindAssignmentByID(ctx context.Context, schoolID, teacherID, id bson.ObjectID) (*model.Assignment, error)
+	FindAssignments(ctx context.Context, teacherID bson.ObjectID, classID, subjectID *bson.ObjectID, search string, page, limit int64) ([]*model.Assignment, int64, error)
+	FindAssignmentByID(ctx context.Context, teacherID, id bson.ObjectID) (*model.Assignment, error)
 	CreateAssignment(ctx context.Context, a *model.Assignment) error
 	UpdateAssignment(ctx context.Context, a *model.Assignment) error
-	DeleteAssignment(ctx context.Context, schoolID, teacherID, id bson.ObjectID) error
-	CountSubmissionsByAssignmentID(ctx context.Context, schoolID, assignmentID bson.ObjectID) (int64, error)
-	FindSubmissions(ctx context.Context, schoolID, assignmentID bson.ObjectID) ([]*model.AssignmentSubmission, error)
-	FindSubmissionByID(ctx context.Context, schoolID, submissionID bson.ObjectID) (*model.AssignmentSubmission, error)
-	FindStudentsByClassIDs(ctx context.Context, schoolID bson.ObjectID, classIDs []bson.ObjectID) ([]*model.Student, error)
-	FindStudentByID(ctx context.Context, schoolID, studentID bson.ObjectID) (*model.Student, error)
+	DeleteAssignment(ctx context.Context, teacherID, id bson.ObjectID) error
+	CountSubmissionsByAssignmentID(ctx context.Context, assignmentID bson.ObjectID) (int64, error)
+	FindSubmissions(ctx context.Context, assignmentID bson.ObjectID) ([]*model.AssignmentSubmission, error)
+	FindSubmissionByID(ctx context.Context, submissionID bson.ObjectID) (*model.AssignmentSubmission, error)
+	FindStudentsByClassIDs(ctx context.Context, classIDs []bson.ObjectID) ([]*model.Student, error)
+	FindStudentByID(ctx context.Context, studentID bson.ObjectID) (*model.Student, error)
 	FindUsersMap(ctx context.Context, userIDs []bson.ObjectID) (map[bson.ObjectID]*model.User, error)
-	FindClassesMap(ctx context.Context, schoolID bson.ObjectID, classIDs []bson.ObjectID) (map[bson.ObjectID]*model.Class, error)
+	FindClassesMap(ctx context.Context, classIDs []bson.ObjectID) (map[bson.ObjectID]*model.Class, error)
 	FindSubjectsMap(ctx context.Context, subjectIDs []bson.ObjectID) (map[bson.ObjectID]*model.Subject, error)
-	GradeSubmissionInTransaction(ctx context.Context, schoolID, teacherID bson.ObjectID, submission *model.AssignmentSubmission, grade *model.Grade, audit *model.AuditLog) error
+	GradeSubmissionInTransaction(ctx context.Context, teacherID bson.ObjectID, submission *model.AssignmentSubmission, grade *model.Grade, audit *model.AuditLog) error
 }
 
 type assignmentRepoImpl struct {
@@ -57,9 +57,9 @@ func NewAssignmentRepository(db *mongo.Database) AssignmentRepository {
 	}
 }
 
-func (r *assignmentRepoImpl) FindAssignments(ctx context.Context, schoolID, teacherID bson.ObjectID, classID, subjectID *bson.ObjectID, search string, page, limit int64) ([]*model.Assignment, int64, error) {
+func (r *assignmentRepoImpl) FindAssignments(ctx context.Context, teacherID bson.ObjectID, classID, subjectID *bson.ObjectID, search string, page, limit int64) ([]*model.Assignment, int64, error) {
 	filter := bson.M{
-		"schoolId":  schoolID,
+		
 		"teacherId": teacherID,
 	}
 	if classID != nil && !classID.IsZero() {
@@ -97,10 +97,10 @@ func (r *assignmentRepoImpl) FindAssignments(ctx context.Context, schoolID, teac
 	return list, total, nil
 }
 
-func (r *assignmentRepoImpl) FindAssignmentByID(ctx context.Context, schoolID, teacherID, id bson.ObjectID) (*model.Assignment, error) {
+func (r *assignmentRepoImpl) FindAssignmentByID(ctx context.Context, teacherID, id bson.ObjectID) (*model.Assignment, error) {
 	filter := bson.M{
 		"_id":       id,
-		"schoolId":  schoolID,
+		
 		"teacherId": teacherID,
 	}
 	var a model.Assignment
@@ -128,17 +128,17 @@ func (r *assignmentRepoImpl) CreateAssignment(ctx context.Context, a *model.Assi
 func (r *assignmentRepoImpl) UpdateAssignment(ctx context.Context, a *model.Assignment) error {
 	filter := bson.M{
 		"_id":       a.ID,
-		"schoolId":  a.SchoolID,
+		
 		"teacherId": a.TeacherID,
 	}
 	_, err := r.assignments.ReplaceOne(ctx, filter, a)
 	return err
 }
 
-func (r *assignmentRepoImpl) DeleteAssignment(ctx context.Context, schoolID, teacherID, id bson.ObjectID) error {
+func (r *assignmentRepoImpl) DeleteAssignment(ctx context.Context, teacherID, id bson.ObjectID) error {
 	filter := bson.M{
 		"_id":       id,
-		"schoolId":  schoolID,
+		
 		"teacherId": teacherID,
 	}
 	res, err := r.assignments.DeleteOne(ctx, filter)
@@ -151,18 +151,18 @@ func (r *assignmentRepoImpl) DeleteAssignment(ctx context.Context, schoolID, tea
 	return nil
 }
 
-func (r *assignmentRepoImpl) CountSubmissionsByAssignmentID(ctx context.Context, schoolID, assignmentID bson.ObjectID) (int64, error) {
+func (r *assignmentRepoImpl) CountSubmissionsByAssignmentID(ctx context.Context, assignmentID bson.ObjectID) (int64, error) {
 	filter := bson.M{
 		"assignmentId": assignmentID,
-		"schoolId":     schoolID,
+		
 	}
 	return r.submissions.CountDocuments(ctx, filter)
 }
 
-func (r *assignmentRepoImpl) FindSubmissions(ctx context.Context, schoolID, assignmentID bson.ObjectID) ([]*model.AssignmentSubmission, error) {
+func (r *assignmentRepoImpl) FindSubmissions(ctx context.Context, assignmentID bson.ObjectID) ([]*model.AssignmentSubmission, error) {
 	filter := bson.M{
 		"assignmentId": assignmentID,
-		"schoolId":     schoolID,
+		
 	}
 	opts := options.Find().SetSort(bson.D{{Key: "version", Value: -1}})
 	cur, err := r.submissions.Find(ctx, filter, opts)
@@ -178,10 +178,10 @@ func (r *assignmentRepoImpl) FindSubmissions(ctx context.Context, schoolID, assi
 	return list, nil
 }
 
-func (r *assignmentRepoImpl) FindSubmissionByID(ctx context.Context, schoolID, submissionID bson.ObjectID) (*model.AssignmentSubmission, error) {
+func (r *assignmentRepoImpl) FindSubmissionByID(ctx context.Context, submissionID bson.ObjectID) (*model.AssignmentSubmission, error) {
 	filter := bson.M{
 		"_id":      submissionID,
-		"schoolId": schoolID,
+		
 	}
 	var sub model.AssignmentSubmission
 	err := r.submissions.FindOne(ctx, filter).Decode(&sub)
@@ -194,12 +194,12 @@ func (r *assignmentRepoImpl) FindSubmissionByID(ctx context.Context, schoolID, s
 	return &sub, nil
 }
 
-func (r *assignmentRepoImpl) FindStudentsByClassIDs(ctx context.Context, schoolID bson.ObjectID, classIDs []bson.ObjectID) ([]*model.Student, error) {
+func (r *assignmentRepoImpl) FindStudentsByClassIDs(ctx context.Context, classIDs []bson.ObjectID) ([]*model.Student, error) {
 	if len(classIDs) == 0 {
 		return []*model.Student{}, nil
 	}
 	filter := bson.M{
-		"schoolId": schoolID,
+		
 		"classId":  bson.M{"$in": classIDs},
 		"status":   "active",
 	}
@@ -216,10 +216,10 @@ func (r *assignmentRepoImpl) FindStudentsByClassIDs(ctx context.Context, schoolI
 	return list, nil
 }
 
-func (r *assignmentRepoImpl) FindStudentByID(ctx context.Context, schoolID, studentID bson.ObjectID) (*model.Student, error) {
+func (r *assignmentRepoImpl) FindStudentByID(ctx context.Context, studentID bson.ObjectID) (*model.Student, error) {
 	filter := bson.M{
 		"_id":      studentID,
-		"schoolId": schoolID,
+		
 	}
 	var s model.Student
 	err := r.students.FindOne(ctx, filter).Decode(&s)
@@ -252,14 +252,14 @@ func (r *assignmentRepoImpl) FindUsersMap(ctx context.Context, userIDs []bson.Ob
 	return result, nil
 }
 
-func (r *assignmentRepoImpl) FindClassesMap(ctx context.Context, schoolID bson.ObjectID, classIDs []bson.ObjectID) (map[bson.ObjectID]*model.Class, error) {
+func (r *assignmentRepoImpl) FindClassesMap(ctx context.Context, classIDs []bson.ObjectID) (map[bson.ObjectID]*model.Class, error) {
 	result := make(map[bson.ObjectID]*model.Class)
 	if len(classIDs) == 0 {
 		return result, nil
 	}
 	filter := bson.M{
 		"_id":      bson.M{"$in": classIDs},
-		"schoolId": schoolID,
+		
 	}
 	cur, err := r.classes.Find(ctx, filter)
 	if err != nil {
@@ -295,12 +295,12 @@ func (r *assignmentRepoImpl) FindSubjectsMap(ctx context.Context, subjectIDs []b
 	return result, nil
 }
 
-func (r *assignmentRepoImpl) GradeSubmissionInTransaction(ctx context.Context, schoolID, teacherID bson.ObjectID, submission *model.AssignmentSubmission, grade *model.Grade, audit *model.AuditLog) error {
+func (r *assignmentRepoImpl) GradeSubmissionInTransaction(ctx context.Context, teacherID bson.ObjectID, submission *model.AssignmentSubmission, grade *model.Grade, audit *model.AuditLog) error {
 	executeOps := func(sc context.Context) error {
 		// 1. Update assignment submission
 		subFilter := bson.M{
 			"_id":      submission.ID,
-			"schoolId": schoolID,
+			
 		}
 		subUpdate := bson.M{
 			"$set": bson.M{
@@ -327,7 +327,7 @@ func (r *assignmentRepoImpl) GradeSubmissionInTransaction(ctx context.Context, s
 		gradeUpdate := bson.M{
 			"$set": bson.M{
 				"score":     grade.Score,
-				"schoolId":  schoolID,
+				
 				"teacherId": teacherID,
 				"classId":   grade.ClassID,
 				"source":    grade.Source,

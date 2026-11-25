@@ -12,33 +12,33 @@ import (
 
 // GradeRepository defines persistence operations for teacher grade management.
 type GradeRepository interface {
-	FindGradesByClassSubject(ctx context.Context, schoolID, classID, subjectID, academicYearID bson.ObjectID) ([]*model.Grade, error)
-	FindStudentsByClassID(ctx context.Context, schoolID, classID bson.ObjectID) ([]*model.Student, error)
+	FindGradesByClassSubject(ctx context.Context, classID, subjectID, academicYearID bson.ObjectID) ([]*model.Grade, error)
+	FindStudentsByClassID(ctx context.Context, classID bson.ObjectID) ([]*model.Student, error)
 	FindUsersByIDs(ctx context.Context, userIDs []bson.ObjectID) (map[bson.ObjectID]*model.User, error)
-	FindGradingConfig(ctx context.Context, schoolID, academicYearID, subjectID bson.ObjectID) (*model.GradingConfig, error)
+	FindGradingConfig(ctx context.Context, academicYearID, subjectID bson.ObjectID) (*model.GradingConfig, error)
 	UpsertExamGrade(ctx context.Context, grade *model.Grade) (*model.Grade, error)
 	FindStudentByID(ctx context.Context, studentID bson.ObjectID) (*model.Student, error)
 	FindClassByID(ctx context.Context, classID bson.ObjectID) (*model.Class, error)
 	FindSubjectByID(ctx context.Context, subjectID bson.ObjectID) (*model.Subject, error)
 
-	BulkUpsertSTS(ctx context.Context, schoolID, teacherID bson.ObjectID, grades []*model.Grade, audits []*model.AuditLog) error
-	FindExistingExamGrade(ctx context.Context, schoolID, studentID, subjectID, academicYearID bson.ObjectID, semester int, gradeType model.GradeType) (*model.Grade, error)
+	BulkUpsertSTS(ctx context.Context, teacherID bson.ObjectID, grades []*model.Grade, audits []*model.AuditLog) error
+	FindExistingExamGrade(ctx context.Context, studentID, subjectID, academicYearID bson.ObjectID, semester int, gradeType model.GradeType) (*model.Grade, error)
 
-	FindAssignment(ctx context.Context, schoolID, teacherID, id bson.ObjectID) (*model.Assignment, error)
-	HasAssignmentSubmission(ctx context.Context, schoolID, assignmentID, studentID bson.ObjectID) (bool, error)
+	FindAssignment(ctx context.Context, teacherID, id bson.ObjectID) (*model.Assignment, error)
+	HasAssignmentSubmission(ctx context.Context, assignmentID, studentID bson.ObjectID) (bool, error)
 
-	FindProject(ctx context.Context, schoolID, teacherID, id bson.ObjectID) (*model.Project, error)
-	HasProjectSubmission(ctx context.Context, schoolID, projectID, studentID bson.ObjectID) (bool, error)
+	FindProject(ctx context.Context, teacherID, id bson.ObjectID) (*model.Project, error)
+	HasProjectSubmission(ctx context.Context, projectID, studentID bson.ObjectID) (bool, error)
 
-	FindAssessment(ctx context.Context, schoolID, teacherID, id bson.ObjectID) (*model.Assessment, error)
-	HasAssessmentAttempt(ctx context.Context, schoolID, assessmentID, studentID bson.ObjectID) (bool, error)
+	FindAssessment(ctx context.Context, teacherID, id bson.ObjectID) (*model.Assessment, error)
+	HasAssessmentAttempt(ctx context.Context, assessmentID, studentID bson.ObjectID) (bool, error)
 
 	SetManualItemGrade(ctx context.Context, grade *model.Grade, audit *model.AuditLog) error
-	DeleteManualItemGrade(ctx context.Context, schoolID, sourceID, studentID bson.ObjectID, audit *model.AuditLog) error
-	FindManualItemGrade(ctx context.Context, schoolID, sourceID, studentID bson.ObjectID) (*model.Grade, error)
+	DeleteManualItemGrade(ctx context.Context, sourceID, studentID bson.ObjectID, audit *model.AuditLog) error
+	FindManualItemGrade(ctx context.Context, sourceID, studentID bson.ObjectID) (*model.Grade, error)
 
-	FindLearningOutcomesForRecap(ctx context.Context, schoolID, academicYearID, subjectID, classID bson.ObjectID, semester int) ([]*model.LearningOutcome, error)
-	FindItemsForRecap(ctx context.Context, schoolID, academicYearID, subjectID, classID bson.ObjectID) ([]*model.Assignment, []*model.Project, []*model.Assessment, error)
+	FindLearningOutcomesForRecap(ctx context.Context, academicYearID, subjectID, classID bson.ObjectID, semester int) ([]*model.LearningOutcome, error)
+	FindItemsForRecap(ctx context.Context, academicYearID, subjectID, classID bson.ObjectID) ([]*model.Assignment, []*model.Project, []*model.Assessment, error)
 }
 
 type gradeRepoImpl struct {
@@ -80,9 +80,9 @@ func NewGradeRepository(db *mongo.Database) GradeRepository {
 	}
 }
 
-func (r *gradeRepoImpl) FindGradesByClassSubject(ctx context.Context, schoolID, classID, subjectID, academicYearID bson.ObjectID) ([]*model.Grade, error) {
+func (r *gradeRepoImpl) FindGradesByClassSubject(ctx context.Context, classID, subjectID, academicYearID bson.ObjectID) ([]*model.Grade, error) {
 	filter := bson.M{
-		"schoolId":       schoolID,
+		
 		"classId":        classID,
 		"subjectId":      subjectID,
 		"academicYearId": academicYearID,
@@ -98,9 +98,9 @@ func (r *gradeRepoImpl) FindGradesByClassSubject(ctx context.Context, schoolID, 
 	return items, nil
 }
 
-func (r *gradeRepoImpl) FindStudentsByClassID(ctx context.Context, schoolID, classID bson.ObjectID) ([]*model.Student, error) {
+func (r *gradeRepoImpl) FindStudentsByClassID(ctx context.Context, classID bson.ObjectID) ([]*model.Student, error) {
 	filter := bson.M{
-		"schoolId": schoolID,
+		
 		"classId":  classID,
 		"status":   "active",
 	}
@@ -135,11 +135,11 @@ func (r *gradeRepoImpl) FindUsersByIDs(ctx context.Context, userIDs []bson.Objec
 	return result, nil
 }
 
-func (r *gradeRepoImpl) FindGradingConfig(ctx context.Context, schoolID, academicYearID, subjectID bson.ObjectID) (*model.GradingConfig, error) {
+func (r *gradeRepoImpl) FindGradingConfig(ctx context.Context, academicYearID, subjectID bson.ObjectID) (*model.GradingConfig, error) {
 	// First attempt: find subject-specific config
 	var cfg model.GradingConfig
 	err := r.gradingConfigs.FindOne(ctx, bson.M{
-		"schoolId":       schoolID,
+		
 		"academicYearId": academicYearID,
 		"subjectId":      subjectID,
 	}).Decode(&cfg)
@@ -149,7 +149,7 @@ func (r *gradeRepoImpl) FindGradingConfig(ctx context.Context, schoolID, academi
 
 	// Fallback: school-wide default config (subjectId == nil or doesn't exist)
 	err = r.gradingConfigs.FindOne(ctx, bson.M{
-		"schoolId":       schoolID,
+		
 		"academicYearId": academicYearID,
 		"subjectId":      nil,
 	}).Decode(&cfg)
@@ -224,7 +224,7 @@ func (r *gradeRepoImpl) FindSubjectByID(ctx context.Context, subjectID bson.Obje
 	return &sub, nil
 }
 
-func (r *gradeRepoImpl) BulkUpsertSTS(ctx context.Context, schoolID, teacherID bson.ObjectID, grades []*model.Grade, audits []*model.AuditLog) error {
+func (r *gradeRepoImpl) BulkUpsertSTS(ctx context.Context, teacherID bson.ObjectID, grades []*model.Grade, audits []*model.AuditLog) error {
 	session, err := r.db.Client().StartSession()
 	if err != nil {
 		// Fallback without transaction if standalone
@@ -259,9 +259,9 @@ func (r *gradeRepoImpl) BulkUpsertSTS(ctx context.Context, schoolID, teacherID b
 	return err
 }
 
-func (r *gradeRepoImpl) FindExistingExamGrade(ctx context.Context, schoolID, studentID, subjectID, academicYearID bson.ObjectID, semester int, gradeType model.GradeType) (*model.Grade, error) {
+func (r *gradeRepoImpl) FindExistingExamGrade(ctx context.Context, studentID, subjectID, academicYearID bson.ObjectID, semester int, gradeType model.GradeType) (*model.Grade, error) {
 	filter := bson.M{
-		"schoolId":       schoolID,
+		
 		"studentId":      studentID,
 		"subjectId":      subjectID,
 		"academicYearId": academicYearID,
@@ -279,9 +279,9 @@ func (r *gradeRepoImpl) FindExistingExamGrade(ctx context.Context, schoolID, stu
 	return &g, nil
 }
 
-func (r *gradeRepoImpl) FindAssignment(ctx context.Context, schoolID, teacherID, id bson.ObjectID) (*model.Assignment, error) {
+func (r *gradeRepoImpl) FindAssignment(ctx context.Context, teacherID, id bson.ObjectID) (*model.Assignment, error) {
 	var asg model.Assignment
-	err := r.assignments.FindOne(ctx, bson.M{"_id": id, "schoolId": schoolID, "teacherId": teacherID}).Decode(&asg)
+	err := r.assignments.FindOne(ctx, bson.M{"_id": id,  "teacherId": teacherID}).Decode(&asg)
 	if err != nil {
 		if err == mongo.ErrNoDocuments {
 			return nil, nil
@@ -291,18 +291,18 @@ func (r *gradeRepoImpl) FindAssignment(ctx context.Context, schoolID, teacherID,
 	return &asg, nil
 }
 
-func (r *gradeRepoImpl) HasAssignmentSubmission(ctx context.Context, schoolID, assignmentID, studentID bson.ObjectID) (bool, error) {
+func (r *gradeRepoImpl) HasAssignmentSubmission(ctx context.Context, assignmentID, studentID bson.ObjectID) (bool, error) {
 	count, err := r.assignmentSubmissions.CountDocuments(ctx, bson.M{
-		"schoolId":     schoolID,
+		
 		"assignmentId": assignmentID,
 		"studentId":    studentID,
 	})
 	return count > 0, err
 }
 
-func (r *gradeRepoImpl) FindProject(ctx context.Context, schoolID, teacherID, id bson.ObjectID) (*model.Project, error) {
+func (r *gradeRepoImpl) FindProject(ctx context.Context, teacherID, id bson.ObjectID) (*model.Project, error) {
 	var prj model.Project
-	err := r.projects.FindOne(ctx, bson.M{"_id": id, "schoolId": schoolID, "teacherId": teacherID}).Decode(&prj)
+	err := r.projects.FindOne(ctx, bson.M{"_id": id,  "teacherId": teacherID}).Decode(&prj)
 	if err != nil {
 		if err == mongo.ErrNoDocuments {
 			return nil, nil
@@ -312,18 +312,18 @@ func (r *gradeRepoImpl) FindProject(ctx context.Context, schoolID, teacherID, id
 	return &prj, nil
 }
 
-func (r *gradeRepoImpl) HasProjectSubmission(ctx context.Context, schoolID, projectID, studentID bson.ObjectID) (bool, error) {
+func (r *gradeRepoImpl) HasProjectSubmission(ctx context.Context, projectID, studentID bson.ObjectID) (bool, error) {
 	count, err := r.projectSubmissions.CountDocuments(ctx, bson.M{
-		"schoolId":  schoolID,
+		
 		"projectId": projectID,
 		"studentId": studentID,
 	})
 	return count > 0, err
 }
 
-func (r *gradeRepoImpl) FindAssessment(ctx context.Context, schoolID, teacherID, id bson.ObjectID) (*model.Assessment, error) {
+func (r *gradeRepoImpl) FindAssessment(ctx context.Context, teacherID, id bson.ObjectID) (*model.Assessment, error) {
 	var asm model.Assessment
-	err := r.assessments.FindOne(ctx, bson.M{"_id": id, "schoolId": schoolID, "teacherId": teacherID}).Decode(&asm)
+	err := r.assessments.FindOne(ctx, bson.M{"_id": id,  "teacherId": teacherID}).Decode(&asm)
 	if err != nil {
 		if err == mongo.ErrNoDocuments {
 			return nil, nil
@@ -333,9 +333,9 @@ func (r *gradeRepoImpl) FindAssessment(ctx context.Context, schoolID, teacherID,
 	return &asm, nil
 }
 
-func (r *gradeRepoImpl) HasAssessmentAttempt(ctx context.Context, schoolID, assessmentID, studentID bson.ObjectID) (bool, error) {
+func (r *gradeRepoImpl) HasAssessmentAttempt(ctx context.Context, assessmentID, studentID bson.ObjectID) (bool, error) {
 	count, err := r.assessmentAttempts.CountDocuments(ctx, bson.M{
-		"schoolId":     schoolID,
+		
 		"assessmentId": assessmentID,
 		"studentId":    studentID,
 	})
@@ -424,10 +424,10 @@ func (r *gradeRepoImpl) SetManualItemGrade(ctx context.Context, grade *model.Gra
 	return err
 }
 
-func (r *gradeRepoImpl) DeleteManualItemGrade(ctx context.Context, schoolID, sourceID, studentID bson.ObjectID, audit *model.AuditLog) error {
+func (r *gradeRepoImpl) DeleteManualItemGrade(ctx context.Context, sourceID, studentID bson.ObjectID, audit *model.AuditLog) error {
 	session, err := r.db.Client().StartSession()
 	if err != nil {
-		_, err := r.grades.DeleteOne(ctx, bson.M{"schoolId": schoolID, "sourceId": sourceID, "studentId": studentID, "source": "manual"})
+		_, err := r.grades.DeleteOne(ctx, bson.M{ "sourceId": sourceID, "studentId": studentID, "source": "manual"})
 		if err != nil {
 			return err
 		}
@@ -439,7 +439,7 @@ func (r *gradeRepoImpl) DeleteManualItemGrade(ctx context.Context, schoolID, sou
 	defer session.EndSession(ctx)
 
 	_, err = session.WithTransaction(ctx, func(sc context.Context) (interface{}, error) {
-		_, err := r.grades.DeleteOne(sc, bson.M{"schoolId": schoolID, "sourceId": sourceID, "studentId": studentID, "source": "manual"})
+		_, err := r.grades.DeleteOne(sc, bson.M{ "sourceId": sourceID, "studentId": studentID, "source": "manual"})
 		if err != nil {
 			return nil, err
 		}
@@ -454,9 +454,9 @@ func (r *gradeRepoImpl) DeleteManualItemGrade(ctx context.Context, schoolID, sou
 	return err
 }
 
-func (r *gradeRepoImpl) FindManualItemGrade(ctx context.Context, schoolID, sourceID, studentID bson.ObjectID) (*model.Grade, error) {
+func (r *gradeRepoImpl) FindManualItemGrade(ctx context.Context, sourceID, studentID bson.ObjectID) (*model.Grade, error) {
 	var g model.Grade
-	err := r.grades.FindOne(ctx, bson.M{"schoolId": schoolID, "sourceId": sourceID, "studentId": studentID}).Decode(&g)
+	err := r.grades.FindOne(ctx, bson.M{ "sourceId": sourceID, "studentId": studentID}).Decode(&g)
 	if err != nil {
 		if err == mongo.ErrNoDocuments {
 			return nil, nil
@@ -466,9 +466,9 @@ func (r *gradeRepoImpl) FindManualItemGrade(ctx context.Context, schoolID, sourc
 	return &g, nil
 }
 
-func (r *gradeRepoImpl) FindLearningOutcomesForRecap(ctx context.Context, schoolID, academicYearID, subjectID, classID bson.ObjectID, semester int) ([]*model.LearningOutcome, error) {
+func (r *gradeRepoImpl) FindLearningOutcomesForRecap(ctx context.Context, academicYearID, subjectID, classID bson.ObjectID, semester int) ([]*model.LearningOutcome, error) {
 	filter := bson.M{
-		"schoolId":       schoolID,
+		
 		"academicYearId": academicYearID,
 		"subjectId":      subjectID,
 		"classIds":       classID,
@@ -488,8 +488,8 @@ func (r *gradeRepoImpl) FindLearningOutcomesForRecap(ctx context.Context, school
 	return list, nil
 }
 
-func (r *gradeRepoImpl) FindItemsForRecap(ctx context.Context, schoolID, academicYearID, subjectID, classID bson.ObjectID) ([]*model.Assignment, []*model.Project, []*model.Assessment, error) {
-	asgCursor, err := r.assignments.Find(ctx, bson.M{"schoolId": schoolID, "subjectId": subjectID, "classIds": classID})
+func (r *gradeRepoImpl) FindItemsForRecap(ctx context.Context, academicYearID, subjectID, classID bson.ObjectID) ([]*model.Assignment, []*model.Project, []*model.Assessment, error) {
+	asgCursor, err := r.assignments.Find(ctx, bson.M{ "subjectId": subjectID, "classIds": classID})
 	if err != nil {
 		return nil, nil, nil, err
 	}
@@ -497,7 +497,7 @@ func (r *gradeRepoImpl) FindItemsForRecap(ctx context.Context, schoolID, academi
 	var assignments []*model.Assignment
 	_ = asgCursor.All(ctx, &assignments)
 
-	prjCursor, err := r.projects.Find(ctx, bson.M{"schoolId": schoolID, "subjectId": subjectID, "classIds": classID})
+	prjCursor, err := r.projects.Find(ctx, bson.M{ "subjectId": subjectID, "classIds": classID})
 	if err != nil {
 		return nil, nil, nil, err
 	}
@@ -505,7 +505,7 @@ func (r *gradeRepoImpl) FindItemsForRecap(ctx context.Context, schoolID, academi
 	var projects []*model.Project
 	_ = prjCursor.All(ctx, &projects)
 
-	asmCursor, err := r.assessments.Find(ctx, bson.M{"schoolId": schoolID, "subjectId": subjectID, "classIds": classID, "academicYearId": academicYearID, "category": model.CategoryDaily})
+	asmCursor, err := r.assessments.Find(ctx, bson.M{ "subjectId": subjectID, "classIds": classID, "academicYearId": academicYearID, "category": model.CategoryDaily})
 	if err != nil {
 		return nil, nil, nil, err
 	}

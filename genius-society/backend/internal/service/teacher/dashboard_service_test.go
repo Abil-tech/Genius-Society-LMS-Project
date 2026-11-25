@@ -29,7 +29,7 @@ type mockDashboardRepo struct {
 	walasClass          *model.Class
 }
 
-func (m *mockDashboardRepo) CountStudentsByClassIDs(ctx context.Context, schoolID bson.ObjectID, classIDs []bson.ObjectID) (int, error) {
+func (m *mockDashboardRepo) CountStudentsByClassIDs(ctx context.Context, classIDs []bson.ObjectID) (int, error) {
 	return m.studentsCount, nil
 }
 func (m *mockDashboardRepo) CountActiveAssignments(ctx context.Context, teacherID bson.ObjectID) (int, error) {
@@ -77,12 +77,11 @@ func (m *mockDashboardRepo) FindSubjectsByIDs(ctx context.Context, ids []bson.Ob
 func (m *mockDashboardRepo) FindClassesByIDs(ctx context.Context, ids []bson.ObjectID) (map[bson.ObjectID]*model.Class, error) {
 	return m.classesMap, nil
 }
-func (m *mockDashboardRepo) CountStudentsByClassID(ctx context.Context, schoolID, classID bson.ObjectID) (int, error) {
+func (m *mockDashboardRepo) CountStudentsByClassID(ctx context.Context, classID bson.ObjectID) (int, error) {
 	return m.studentsCount, nil
 }
 
 func TestDashboardService_GetDashboardData(t *testing.T) {
-	schoolID := bson.NewObjectID()
 	teacherID := bson.NewObjectID()
 	classID := bson.NewObjectID()
 	subjectID := bson.NewObjectID()
@@ -130,7 +129,6 @@ func TestDashboardService_GetDashboardData(t *testing.T) {
 	svc := NewDashboardService(mockDash, mockClass)
 
 	scope := &middleware.TeacherScope{
-		SchoolID:       schoolID,
 		TeacherID:      teacherID,
 		AcademicYearID: ayID,
 		IsWalas:        true,

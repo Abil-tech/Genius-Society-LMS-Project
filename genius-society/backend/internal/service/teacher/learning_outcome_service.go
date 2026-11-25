@@ -58,7 +58,7 @@ func (s *learningOutcomeServiceImpl) ListOutcomes(ctx context.Context, scope *mi
 		classID = &cid
 	}
 
-	list, err := s.repo.FindList(ctx, scope.SchoolID, scope.TeacherID, scope.AcademicYearID, scope.Semester, subjectID, classID)
+	list, err := s.repo.FindList(ctx, scope.TeacherID, scope.AcademicYearID, scope.Semester, subjectID, classID)
 	if err != nil {
 		return nil, err
 	}
@@ -72,7 +72,7 @@ func (s *learningOutcomeServiceImpl) ListOutcomes(ctx context.Context, scope *mi
 		allClassIDs = append(allClassIDs, lo.ClassIDs...)
 	}
 
-	classMap, _ := s.repo.FindClassesMap(ctx, scope.SchoolID, allClassIDs)
+	classMap, _ := s.repo.FindClassesMap(ctx, allClassIDs)
 	subjectMap, _ := s.repo.FindSubjectsMap(ctx, allSubjectIDs)
 
 	res := make([]teacherdto.LearningOutcomeResponseDTO, 0, len(list))
@@ -91,7 +91,7 @@ func (s *learningOutcomeServiceImpl) ListOutcomes(ctx context.Context, scope *mi
 			}
 		}
 
-		itemCount, _ := s.repo.CountItemsByOutcomeID(ctx, scope.SchoolID, lo.ID)
+		itemCount, _ := s.repo.CountItemsByOutcomeID(ctx, lo.ID)
 
 		res = append(res, teacherdto.LearningOutcomeResponseDTO{
 			ID:          lo.ID.Hex(),
@@ -116,7 +116,7 @@ func (s *learningOutcomeServiceImpl) GetOutcomeDetail(ctx context.Context, scope
 		return nil, handler.ErrNotFound
 	}
 
-	lo, err := s.repo.FindByID(ctx, scope.SchoolID, scope.TeacherID, id)
+	lo, err := s.repo.FindByID(ctx, scope.TeacherID, id)
 	if err != nil {
 		return nil, err
 	}
@@ -124,7 +124,7 @@ func (s *learningOutcomeServiceImpl) GetOutcomeDetail(ctx context.Context, scope
 		return nil, handler.ErrNotFound
 	}
 
-	classMap, _ := s.repo.FindClassesMap(ctx, scope.SchoolID, lo.ClassIDs)
+	classMap, _ := s.repo.FindClassesMap(ctx, lo.ClassIDs)
 	subjectMap, _ := s.repo.FindSubjectsMap(ctx, []bson.ObjectID{lo.SubjectID})
 
 	subName := ""
@@ -141,7 +141,7 @@ func (s *learningOutcomeServiceImpl) GetOutcomeDetail(ctx context.Context, scope
 		}
 	}
 
-	itemCount, _ := s.repo.CountItemsByOutcomeID(ctx, scope.SchoolID, lo.ID)
+	itemCount, _ := s.repo.CountItemsByOutcomeID(ctx, lo.ID)
 
 	return &teacherdto.LearningOutcomeResponseDTO{
 		ID:          lo.ID.Hex(),
@@ -202,7 +202,6 @@ func (s *learningOutcomeServiceImpl) CreateOutcome(ctx context.Context, scope *m
 	now := time.Now().UTC()
 	lo := &model.LearningOutcome{
 		ID:             bson.NewObjectID(),
-		SchoolID:      scope.SchoolID,
 		AcademicYearID: scope.AcademicYearID,
 		Semester:       scope.Semester,
 		SubjectID:      subjectID,
@@ -231,7 +230,7 @@ func (s *learningOutcomeServiceImpl) UpdateOutcome(ctx context.Context, scope *m
 		return nil, handler.ErrUnauthorized
 	}
 
-	lo, err := s.repo.FindByID(ctx, scope.SchoolID, scope.TeacherID, id)
+	lo, err := s.repo.FindByID(ctx, scope.TeacherID, id)
 	if err != nil {
 		return nil, err
 	}
@@ -295,7 +294,7 @@ func (s *learningOutcomeServiceImpl) DeleteOutcome(ctx context.Context, scope *m
 		return handler.ErrUnauthorized
 	}
 
-	lo, err := s.repo.FindByID(ctx, scope.SchoolID, scope.TeacherID, id)
+	lo, err := s.repo.FindByID(ctx, scope.TeacherID, id)
 	if err != nil {
 		return err
 	}
@@ -303,7 +302,7 @@ func (s *learningOutcomeServiceImpl) DeleteOutcome(ctx context.Context, scope *m
 		return handler.ErrNotFound
 	}
 
-	count, err := s.repo.CountItemsByOutcomeID(ctx, scope.SchoolID, id)
+	count, err := s.repo.CountItemsByOutcomeID(ctx, id)
 	if err != nil {
 		return err
 	}
@@ -311,7 +310,7 @@ func (s *learningOutcomeServiceImpl) DeleteOutcome(ctx context.Context, scope *m
 		return handler.NewConflictError("Pencapaian pembelajaran tidak dapat dihapus karena masih memiliki tugas, projek, atau asesmen tertaut")
 	}
 
-	return s.repo.Delete(ctx, scope.SchoolID, scope.TeacherID, id)
+	return s.repo.Delete(ctx, scope.TeacherID, id)
 }
 
 func (s *learningOutcomeServiceImpl) validateOutcomeForMapping(ctx context.Context, scope *middleware.TeacherScope, outcomeID *bson.ObjectID, subjectID bson.ObjectID, itemClassIDs []bson.ObjectID) error {
@@ -319,7 +318,7 @@ func (s *learningOutcomeServiceImpl) validateOutcomeForMapping(ctx context.Conte
 		return nil
 	}
 
-	lo, err := s.repo.FindByID(ctx, scope.SchoolID, scope.TeacherID, *outcomeID)
+	lo, err := s.repo.FindByID(ctx, scope.TeacherID, *outcomeID)
 	if err != nil {
 		return err
 	}
@@ -365,7 +364,7 @@ func (s *learningOutcomeServiceImpl) MapAssignmentOutcome(ctx context.Context, s
 		return handler.ErrUnauthorized
 	}
 
-	asg, err := s.repo.FindAssignmentByID(ctx, scope.SchoolID, scope.TeacherID, assignmentID)
+	asg, err := s.repo.FindAssignmentByID(ctx, scope.TeacherID, assignmentID)
 	if err != nil {
 		return err
 	}
@@ -382,7 +381,7 @@ func (s *learningOutcomeServiceImpl) MapAssignmentOutcome(ctx context.Context, s
 		return err
 	}
 
-	return s.repo.UpdateAssignmentOutcome(ctx, scope.SchoolID, scope.TeacherID, assignmentID, targetOID)
+	return s.repo.UpdateAssignmentOutcome(ctx, scope.TeacherID, assignmentID, targetOID)
 }
 
 func (s *learningOutcomeServiceImpl) MapProjectOutcome(ctx context.Context, scope *middleware.TeacherScope, projectID bson.ObjectID, outcomeIDStr *string) error {
@@ -390,7 +389,7 @@ func (s *learningOutcomeServiceImpl) MapProjectOutcome(ctx context.Context, scop
 		return handler.ErrUnauthorized
 	}
 
-	prj, err := s.repo.FindProjectByID(ctx, scope.SchoolID, scope.TeacherID, projectID)
+	prj, err := s.repo.FindProjectByID(ctx, scope.TeacherID, projectID)
 	if err != nil {
 		return err
 	}
@@ -407,7 +406,7 @@ func (s *learningOutcomeServiceImpl) MapProjectOutcome(ctx context.Context, scop
 		return err
 	}
 
-	return s.repo.UpdateProjectOutcome(ctx, scope.SchoolID, scope.TeacherID, projectID, targetOID)
+	return s.repo.UpdateProjectOutcome(ctx, scope.TeacherID, projectID, targetOID)
 }
 
 func (s *learningOutcomeServiceImpl) MapAssessmentOutcome(ctx context.Context, scope *middleware.TeacherScope, assessmentID bson.ObjectID, outcomeIDStr *string) error {
@@ -415,7 +414,7 @@ func (s *learningOutcomeServiceImpl) MapAssessmentOutcome(ctx context.Context, s
 		return handler.ErrUnauthorized
 	}
 
-	asm, err := s.repo.FindAssessmentByID(ctx, scope.SchoolID, scope.TeacherID, assessmentID)
+	asm, err := s.repo.FindAssessmentByID(ctx, scope.TeacherID, assessmentID)
 	if err != nil {
 		return err
 	}
@@ -436,5 +435,5 @@ func (s *learningOutcomeServiceImpl) MapAssessmentOutcome(ctx context.Context, s
 		return err
 	}
 
-	return s.repo.UpdateAssessmentOutcome(ctx, scope.SchoolID, scope.TeacherID, assessmentID, targetOID)
+	return s.repo.UpdateAssessmentOutcome(ctx, scope.TeacherID, assessmentID, targetOID)
 }

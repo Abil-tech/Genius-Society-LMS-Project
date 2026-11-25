@@ -13,7 +13,7 @@ import (
 // DashboardRepository defines read operations for aggregating teacher dashboard data.
 type DashboardRepository interface {
 	// CountStudentsByClassIDs returns total active students across the given classes.
-	CountStudentsByClassIDs(ctx context.Context, schoolID bson.ObjectID, classIDs []bson.ObjectID) (int, error)
+	CountStudentsByClassIDs(ctx context.Context, classIDs []bson.ObjectID) (int, error)
 
 	// CountActiveAssignments returns assignments owned by teacher whose deadline is still in the future.
 	CountActiveAssignments(ctx context.Context, teacherID bson.ObjectID) (int, error)
@@ -60,7 +60,7 @@ type DashboardRepository interface {
 	FindClassesByIDs(ctx context.Context, ids []bson.ObjectID) (map[bson.ObjectID]*model.Class, error)
 
 	// CountStudentsByClassID returns number of active students in a single class.
-	CountStudentsByClassID(ctx context.Context, schoolID, classID bson.ObjectID) (int, error)
+	CountStudentsByClassID(ctx context.Context, classID bson.ObjectID) (int, error)
 }
 
 type dashboardRepoImpl struct {
@@ -92,13 +92,13 @@ func NewDashboardRepository(db *mongo.Database) DashboardRepository {
 	}
 }
 
-func (r *dashboardRepoImpl) CountStudentsByClassIDs(ctx context.Context, schoolID bson.ObjectID, classIDs []bson.ObjectID) (int, error) {
+func (r *dashboardRepoImpl) CountStudentsByClassIDs(ctx context.Context, classIDs []bson.ObjectID) (int, error) {
 	if len(classIDs) == 0 {
 		return 0, nil
 	}
 	filter := bson.M{
 		"classId":  bson.M{"$in": classIDs},
-		"schoolId": schoolID,
+		
 		"status":   "active",
 	}
 	count, err := r.students.CountDocuments(ctx, filter)
@@ -340,10 +340,10 @@ func (r *dashboardRepoImpl) FindClassesByIDs(ctx context.Context, ids []bson.Obj
 	return result, nil
 }
 
-func (r *dashboardRepoImpl) CountStudentsByClassID(ctx context.Context, schoolID, classID bson.ObjectID) (int, error) {
+func (r *dashboardRepoImpl) CountStudentsByClassID(ctx context.Context, classID bson.ObjectID) (int, error) {
 	filter := bson.M{
 		"classId":  classID,
-		"schoolId": schoolID,
+		
 		"status":   "active",
 	}
 	count, err := r.students.CountDocuments(ctx, filter)

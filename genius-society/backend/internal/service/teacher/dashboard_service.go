@@ -35,7 +35,7 @@ func (s *dashboardServiceImpl) GetDashboardData(ctx context.Context, scope *midd
 	// 1. KPI Aggregation
 	classesCount := len(teachingClassIDs)
 
-	studentsCount, err := s.repo.CountStudentsByClassIDs(ctx, scope.SchoolID, teachingClassIDs)
+	studentsCount, err := s.repo.CountStudentsByClassIDs(ctx, teachingClassIDs)
 	if err != nil {
 		studentsCount = 0
 	}
@@ -213,7 +213,7 @@ func (s *dashboardServiceImpl) GetDashboardData(ctx context.Context, scope *midd
 		wClassID := scope.WalasClassIDs[0]
 		cl, err := s.repo.FindClassByID(ctx, wClassID)
 		if err == nil && cl != nil {
-			stCount, _ := s.repo.CountStudentsByClassID(ctx, scope.SchoolID, wClassID)
+			stCount, _ := s.repo.CountStudentsByClassID(ctx, wClassID)
 			walasClass = &teacherdto.DashboardWalasClass{
 				ID:           cl.ID.Hex(),
 				Name:         cl.Name,

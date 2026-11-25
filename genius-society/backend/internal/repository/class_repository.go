@@ -61,9 +61,9 @@ func (r *ClassRepository) CountByFilter(ctx context.Context, filter bson.M) (int
 	return r.col.CountDocuments(ctx, filter)
 }
 
-// ExistsByCode checks if a class with the same code exists within the given school and academic year (excluding archived).
-func (r *ClassRepository) ExistsByCode(ctx context.Context, schoolID, academicYearID bson.ObjectID, code string) (bool, error) {
-	filter := bson.M{"schoolId": schoolID, "academicYearId": academicYearID, "code": code, "status": bson.M{"$ne": "archived"}}
+// ExistsByCode checks if a class with the same code exists within the academic year (excluding archived).
+func (r *ClassRepository) ExistsByCode(ctx context.Context, academicYearID bson.ObjectID, code string) (bool, error) {
+	filter := bson.M{"academicYearId": academicYearID, "code": code, "status": bson.M{"$ne": "archived"}}
 	cnt, err := r.col.CountDocuments(ctx, filter)
 	if err != nil {
 		return false, err

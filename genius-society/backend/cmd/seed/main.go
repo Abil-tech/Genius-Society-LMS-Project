@@ -49,13 +49,6 @@ func main() {
 
 	seedUsers := []SeedUser{
 		{
-			Name:     "Super Administrator",
-			Username: "superadmin",
-			Email:    "superadmin@genius.ac.id",
-			Password: "Password123!",
-			Role:     model.RoleSuperAdmin,
-		},
-		{
 			Name:     "Administrator Sekolah",
 			Username: "admin",
 			Email:    "admin@genius.ac.id",
@@ -126,23 +119,12 @@ func main() {
 		},
 	}
 
-// Create or fetch demo school
-schoolRepo := repository.NewSchoolRepository(db)
-	demoSchool, err := schoolRepo.FindOrCreateByName(ctx, "Demo School", "Jl. Pendidikan No.1, Jakarta")
-	if err != nil {
-		log.Fatalf("failed to get or create demo school: %v", err)
-	}
-	demoSchoolID := demoSchool.ID
-	log.Printf("Demo school ID: %s", demoSchoolID.Hex())
-
-	// Inside cmd/seed/main.go – after creating/finding the demo school
 	// ----- Academic Year seed (demo) -----
 	demoAYName := "2026/2027"
 	ayRepo := repository.NewAcademicYearRepository(db)
-	existingAY, _ := ayRepo.FindByName(context.TODO(), demoSchool.ID, demoAYName)
+	existingAY, _ := ayRepo.FindByName(context.TODO(), demoAYName)
 	if existingAY == nil {
 		newAY := &model.AcademicYear{
-			SchoolID:  demoSchool.ID,
 			Name:      demoAYName,
 			Semester:  1,
 			StartDate: time.Date(2026, time.July, 1, 0, 0, 0, 0, time.UTC),
@@ -188,13 +170,6 @@ schoolRepo := repository.NewSchoolRepository(db)
 					IsActive:     true,
 				}
 
-				// Assign demo school ID to all school-scoped users
-				if su.Role != model.RoleSuperAdmin {
-					u.SchoolID = demoSchoolID
-				} else {
-					u.SchoolID = demoSchoolID
-				}
-
 				if err := userRepo.Create(ctx, u); err != nil {
 					log.Printf("failed to insert user %s: %v", su.Username, err)
 					continue
@@ -206,7 +181,7 @@ schoolRepo := repository.NewSchoolRepository(db)
 				// student profile creation for new user
 				if su.Role == model.RoleStudent {
 					var cl model.Class
-					_ = db.Collection("classes").FindOne(ctx, bson.M{"schoolId": demoSchoolID}).Decode(&cl)
+					_ = db.Collection("classes").FindOne(ctx, bson.M{"name": "X-IPA-1"}).Decode(&cl)
 					nis := su.NIS
 					if nis == "" {
 						nis = "NIS" + u.ID.Hex()[:6]
@@ -216,7 +191,6 @@ schoolRepo := repository.NewSchoolRepository(db)
 						enrollYear = time.Now().Year()
 					}
 					st := &model.Student{
-						SchoolID:       demoSchoolID,
 						UserID:         u.ID,
 						NIS:            nis,
 						NISN:           su.NISN,
@@ -238,12 +212,9 @@ schoolRepo := repository.NewSchoolRepository(db)
 				continue
 			}
 
-			// ----- UPDATE existing user: ensure active and school ID -----
+			// ----- UPDATE existing user: ensure active -----
 			updates := bson.M{
 				"isActive": true,
-			}
-			if existing.SchoolID.IsZero() {
-				updates["schoolId"] = demoSchoolID
 			}
 			_, _ = db.Collection("users").UpdateOne(ctx, bson.M{"_id": existing.ID}, bson.M{"$set": updates})
 
@@ -262,12 +233,11 @@ schoolRepo := repository.NewSchoolRepository(db)
 
 				if count == 0 {
 					var cl model.Class
-					_ = db.Collection("classes").FindOne(ctx, bson.M{"schoolId": demoSchoolID, "name": "X-IPA-1"}).Decode(&cl)
+					_ = db.Collection("classes").FindOne(ctx, bson.M{"name": "X-IPA-1"}).Decode(&cl)
 					if cl.ID.IsZero() {
-						_ = db.Collection("classes").FindOne(ctx, bson.M{"schoolId": demoSchoolID, "status": "active"}).Decode(&cl)
+						_ = db.Collection("classes").FindOne(ctx, bson.M{"status": "active"}).Decode(&cl)
 					}
 					st := &model.Student{
-						SchoolID:       demoSchoolID,
 						UserID:         existing.ID,
 						NIS:            nis,
 						NISN:           su.NISN,
@@ -288,12 +258,11 @@ schoolRepo := repository.NewSchoolRepository(db)
 					log.Printf("Created missing student profile for user %s with class %s", su.Username, cl.Name)
 				} else {
 					var cl model.Class
-					_ = db.Collection("classes").FindOne(ctx, bson.M{"schoolId": demoSchoolID, "name": "X-IPA-1"}).Decode(&cl)
+					_ = db.Collection("classes").FindOne(ctx, bson.M{"name": "X-IPA-1"}).Decode(&cl)
 					// Ensure student fields match model.Student
 					updateFields := bson.M{
 						"status":         "active",
 						"updatedAt":      time.Now(),
-						"schoolId":       demoSchoolID,
 						"nis":            nis,
 						"nisn":           su.NISN,
 						"gender":         su.Gender,

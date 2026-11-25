@@ -13,38 +13,38 @@ import (
 )
 
 type mockClassRepo struct {
-	classesFunc       func(ctx context.Context, schoolID bson.ObjectID, classIDs []bson.ObjectID) ([]*model.Class, error)
-	classByIDFunc     func(ctx context.Context, schoolID, classID bson.ObjectID) (*model.Class, error)
-	countStudentsFunc func(ctx context.Context, schoolID, classID bson.ObjectID) (int64, error)
-	studentsFunc      func(ctx context.Context, schoolID, classID bson.ObjectID, search string, page, limit int64) ([]*model.Student, int64, error)
+	classesFunc       func(ctx context.Context, classIDs []bson.ObjectID) ([]*model.Class, error)
+	classByIDFunc     func(ctx context.Context, classID bson.ObjectID) (*model.Class, error)
+	countStudentsFunc func(ctx context.Context, classID bson.ObjectID) (int64, error)
+	studentsFunc      func(ctx context.Context, classID bson.ObjectID, search string, page, limit int64) ([]*model.Student, int64, error)
 	usersFunc         func(ctx context.Context, userIDs []bson.ObjectID) (map[bson.ObjectID]*model.User, error)
 	subjectsFunc      func(ctx context.Context, subjectIDs []bson.ObjectID) (map[bson.ObjectID]*model.Subject, error)
 }
 
-func (m *mockClassRepo) FindClassesByIDs(ctx context.Context, schoolID bson.ObjectID, classIDs []bson.ObjectID) ([]*model.Class, error) {
+func (m *mockClassRepo) FindClassesByIDs(ctx context.Context, classIDs []bson.ObjectID) ([]*model.Class, error) {
 	if m.classesFunc != nil {
-		return m.classesFunc(ctx, schoolID, classIDs)
+		return m.classesFunc(ctx, classIDs)
 	}
 	return nil, nil
 }
 
-func (m *mockClassRepo) FindClassByID(ctx context.Context, schoolID, classID bson.ObjectID) (*model.Class, error) {
+func (m *mockClassRepo) FindClassByID(ctx context.Context, classID bson.ObjectID) (*model.Class, error) {
 	if m.classByIDFunc != nil {
-		return m.classByIDFunc(ctx, schoolID, classID)
+		return m.classByIDFunc(ctx, classID)
 	}
 	return nil, nil
 }
 
-func (m *mockClassRepo) CountStudentsByClassID(ctx context.Context, schoolID, classID bson.ObjectID) (int64, error) {
+func (m *mockClassRepo) CountStudentsByClassID(ctx context.Context, classID bson.ObjectID) (int64, error) {
 	if m.countStudentsFunc != nil {
-		return m.countStudentsFunc(ctx, schoolID, classID)
+		return m.countStudentsFunc(ctx, classID)
 	}
 	return 0, nil
 }
 
-func (m *mockClassRepo) FindStudentsByClassID(ctx context.Context, schoolID, classID bson.ObjectID, search string, page, limit int64) ([]*model.Student, int64, error) {
+func (m *mockClassRepo) FindStudentsByClassID(ctx context.Context, classID bson.ObjectID, search string, page, limit int64) ([]*model.Student, int64, error) {
 	if m.studentsFunc != nil {
-		return m.studentsFunc(ctx, schoolID, classID, search, page, limit)
+		return m.studentsFunc(ctx, classID, search, page, limit)
 	}
 	return nil, 0, nil
 }
@@ -64,13 +64,11 @@ func (m *mockClassRepo) FindSubjectsByIDs(ctx context.Context, subjectIDs []bson
 }
 
 func TestGetClasses(t *testing.T) {
-	schoolID := bson.NewObjectID()
 	class1 := bson.NewObjectID()
 	classWalas := bson.NewObjectID()
 	subj1 := bson.NewObjectID()
 
-	scope := &middleware.TeacherScope{
-		SchoolID: schoolID,
+	scope := &middleware.TeacherScope{	
 		TeachingPairs: []repository.ClassSubjectPair{
 			{ClassID: class1, SubjectID: subj1},
 		},
@@ -79,7 +77,7 @@ func TestGetClasses(t *testing.T) {
 	}
 
 	repo := &mockClassRepo{
-		classesFunc: func(ctx context.Context, sID bson.ObjectID, cIDs []bson.ObjectID) ([]*model.Class, error) {
+		classesFunc: func(ctx context.Context, cIDs []bson.ObjectID) ([]*model.Class, error) {
 			if len(cIDs) != 2 {
 				t.Errorf("expected 2 class IDs, got %d", len(cIDs))
 			}
@@ -93,7 +91,7 @@ func TestGetClasses(t *testing.T) {
 				subj1: {ID: subj1, Code: "MTK", Name: "Matematika"},
 			}, nil
 		},
-		countStudentsFunc: func(ctx context.Context, sID, cID bson.ObjectID) (int64, error) {
+		countStudentsFunc: func(ctx context.Context, cID bson.ObjectID) (int64, error) {
 			if cID == class1 {
 				return 30, nil
 			}
@@ -132,19 +130,18 @@ func TestGetClasses(t *testing.T) {
 }
 
 func TestGetClassDetail_AccessControl(t *testing.T) {
-	schoolID := bson.NewObjectID()
+
 	classAllowed := bson.NewObjectID()
 	classForbidden := bson.NewObjectID()
 
 	scope := &middleware.TeacherScope{
-		SchoolID: schoolID,
 		TeachingPairs: []repository.ClassSubjectPair{
 			{ClassID: classAllowed, SubjectID: bson.NewObjectID()},
 		},
 	}
 
 	repo := &mockClassRepo{
-		classByIDFunc: func(ctx context.Context, sID, cID bson.ObjectID) (*model.Class, error) {
+		classByIDFunc: func(ctx context.Context, cID bson.ObjectID) (*model.Class, error) {
 			if cID == classAllowed {
 				return &model.Class{ID: classAllowed, Name: "Allowed"}, nil
 			}
@@ -168,12 +165,11 @@ func TestGetClassDetail_AccessControl(t *testing.T) {
 }
 
 func TestGetClassStudents_BulkUserLookupAndAccountFlag(t *testing.T) {
-	schoolID := bson.NewObjectID()
+	
 	classID := bson.NewObjectID()
 	user1 := bson.NewObjectID()
 
 	scope := &middleware.TeacherScope{
-		SchoolID: schoolID,
 		TeachingPairs: []repository.ClassSubjectPair{
 			{ClassID: classID, SubjectID: bson.NewObjectID()},
 		},
@@ -186,7 +182,6 @@ func TestGetClassStudents_BulkUserLookupAndAccountFlag(t *testing.T) {
 		NIS:      "1001",
 		NISN:     "001001",
 		Status:   "active",
-		SchoolID: schoolID,
 	}
 	studentWithoutAccount := &model.Student{
 		ID:       bson.NewObjectID(),
@@ -194,15 +189,14 @@ func TestGetClassStudents_BulkUserLookupAndAccountFlag(t *testing.T) {
 		UserID:   bson.NilObjectID, // no account!
 		NIS:      "1002",
 		Status:   "active",
-		SchoolID: schoolID,
 	}
 
 	var bulkLookupCount int
 	repo := &mockClassRepo{
-		classByIDFunc: func(ctx context.Context, sID, cID bson.ObjectID) (*model.Class, error) {
+		classByIDFunc: func(ctx context.Context, cID bson.ObjectID) (*model.Class, error) {
 			return &model.Class{ID: classID, Name: "X-IPA-1"}, nil
 		},
-		studentsFunc: func(ctx context.Context, sID, cID bson.ObjectID, search string, page, limit int64) ([]*model.Student, int64, error) {
+		studentsFunc: func(ctx context.Context, cID bson.ObjectID, search string, page, limit int64) ([]*model.Student, int64, error) {
 			return []*model.Student{studentWithAccount, studentWithoutAccount}, 2, nil
 		},
 		usersFunc: func(ctx context.Context, uIDs []bson.ObjectID) (map[bson.ObjectID]*model.User, error) {

@@ -16,16 +16,16 @@ type mockWalasRepo struct {
 	subjects []*model.Subject
 }
 
-func (m *mockWalasRepo) FindStudentsByClassID(ctx context.Context, schoolID, classID bson.ObjectID) ([]*model.Student, error) {
+func (m *mockWalasRepo) FindStudentsByClassID(ctx context.Context, classID bson.ObjectID) ([]*model.Student, error) {
 	return m.students, nil
 }
 func (m *mockWalasRepo) FindUsersByIDs(ctx context.Context, userIDs []bson.ObjectID) (map[bson.ObjectID]*model.User, error) {
 	return m.users, nil
 }
-func (m *mockWalasRepo) FindGradesByClass(ctx context.Context, schoolID, classID, academicYearID bson.ObjectID) ([]*model.Grade, error) {
+func (m *mockWalasRepo) FindGradesByClass(ctx context.Context, classID, academicYearID bson.ObjectID) ([]*model.Grade, error) {
 	return m.grades, nil
 }
-func (m *mockWalasRepo) FindSubjectsBySchool(ctx context.Context, schoolID bson.ObjectID) ([]*model.Subject, error) {
+func (m *mockWalasRepo) FindSubjectsBySchool(ctx context.Context) ([]*model.Subject, error) {
 	return m.subjects, nil
 }
 func (m *mockWalasRepo) FindSubjectsByIDs(ctx context.Context, ids []bson.ObjectID) (map[bson.ObjectID]*model.Subject, error) {
@@ -37,7 +37,7 @@ func (m *mockWalasRepo) FindSubjectsByIDs(ctx context.Context, ids []bson.Object
 }
 
 func TestWalasService_GetWalasStudents(t *testing.T) {
-	schoolID := bson.NewObjectID()
+
 	classID := bson.NewObjectID()
 	studentID := bson.NewObjectID()
 	userID := bson.NewObjectID()
@@ -57,7 +57,6 @@ func TestWalasService_GetWalasStudents(t *testing.T) {
 
 	svc := NewWalasService(mockRepo)
 	scope := &middleware.TeacherScope{
-		SchoolID:      schoolID,
 		IsWalas:       true,
 		WalasClassIDs: []bson.ObjectID{classID},
 	}

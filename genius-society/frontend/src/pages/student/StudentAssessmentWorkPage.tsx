@@ -40,10 +40,11 @@ export default function StudentAssessmentWorkPage() {
         setTitle(res.title)
         setDurationSeconds(res.durationMinutes * 60)
         setStartedAt(res.startedAt)
-        setQuestions(res.questions)
+        const qs = res.questions ?? []
+        setQuestions(qs)
 
         const initialAns: Record<string, string> = {}
-        res.questions.forEach((q) => {
+        qs.forEach((q) => {
           if (q.answer) initialAns[q.id] = q.answer
         })
         setAnswers(initialAns)

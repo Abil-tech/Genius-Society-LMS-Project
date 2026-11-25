@@ -87,7 +87,7 @@ func (s *studentServiceImpl) GetDashboard(ctx context.Context, scope *middleware
 	now := time.Now().UTC()
 
 	// 1. Assignments
-	assignments, err := s.repo.FindAssignmentsByClass(ctx, scope.SchoolID, scope.ClassID, nil)
+	assignments, err := s.repo.FindAssignmentsByClass(ctx, scope.ClassID, nil)
 	if err != nil {
 		return nil, err
 	}
@@ -95,7 +95,7 @@ func (s *studentServiceImpl) GetDashboard(ctx context.Context, scope *middleware
 	activeAssignments := 0
 	var deadlines []studentdto.DeadlineItem
 	for _, a := range assignments {
-		latestSub, _ := s.repo.FindLatestAssignmentSubmission(ctx, scope.SchoolID, a.ID, scope.StudentID)
+		latestSub, _ := s.repo.FindLatestAssignmentSubmission(ctx, a.ID, scope.StudentID)
 		submitted := latestSub != nil
 
 		if !submitted && a.Deadline.After(now) {
@@ -114,9 +114,9 @@ func (s *studentServiceImpl) GetDashboard(ctx context.Context, scope *middleware
 	}
 
 	// 2. Projects
-	projects, _ := s.repo.FindProjectsByClass(ctx, scope.SchoolID, scope.ClassID, nil)
+	projects, _ := s.repo.FindProjectsByClass(ctx, scope.ClassID, nil)
 	for _, p := range projects {
-		latestSub, _ := s.repo.FindLatestProjectSubmission(ctx, scope.SchoolID, p.ID, scope.StudentID)
+		latestSub, _ := s.repo.FindLatestProjectSubmission(ctx, p.ID, scope.StudentID)
 		submitted := latestSub != nil
 
 		if p.Deadline.After(now.Add(-24 * time.Hour)) {
@@ -139,7 +139,7 @@ func (s *studentServiceImpl) GetDashboard(ctx context.Context, scope *middleware
 	}
 
 	// 3. Active Assessments (status published, endAt > now or nil, no finished attempt)
-	assessments, _ := s.repo.FindAssessmentsByClass(ctx, scope.SchoolID, scope.ClassID, nil)
+	assessments, _ := s.repo.FindAssessmentsByClass(ctx, scope.ClassID, nil)
 	activeAssessments := 0
 	for _, asm := range assessments {
 		if asm.Status != model.AssessmentPublished {
@@ -148,14 +148,14 @@ func (s *studentServiceImpl) GetDashboard(ctx context.Context, scope *middleware
 		if asm.EndAt != nil && asm.EndAt.Before(now) {
 			continue
 		}
-		attempt, _ := s.repo.FindAttemptByStudent(ctx, scope.SchoolID, asm.ID, scope.StudentID)
+		attempt, _ := s.repo.FindAttemptByStudent(ctx, asm.ID, scope.StudentID)
 		if attempt == nil || attempt.Status == model.AttemptInProgress {
 			activeAssessments++
 		}
 	}
 
 	// 4. Recent Grades (last 5 graded entries)
-	grades, _ := s.repo.FindGradesByStudent(ctx, scope.SchoolID, scope.StudentID, scope.AcademicYearID)
+	grades, _ := s.repo.FindGradesByStudent(ctx, scope.StudentID, scope.AcademicYearID)
 	sort.Slice(grades, func(i, j int) bool {
 		return grades[i].CreatedAt.After(grades[j].CreatedAt)
 	})
@@ -200,7 +200,7 @@ func (s *studentServiceImpl) GetDashboard(ctx context.Context, scope *middleware
 		schedDay = 7
 	}
 
-	allSchedules, _ := s.repo.FindSchedulesByClass(ctx, scope.SchoolID, scope.ClassID, scope.AcademicYearID)
+	allSchedules, _ := s.repo.FindSchedulesByClass(ctx, scope.ClassID, scope.AcademicYearID)
 	var todaySchedules []studentdto.ScheduleItemDTO
 	var schedTeacherIDs []bson.ObjectID
 	var schedSubIDs []bson.ObjectID
@@ -259,7 +259,7 @@ func (s *studentServiceImpl) ListMaterials(ctx context.Context, scope *middlewar
 		}
 	}
 
-	materials, err := s.repo.FindMaterialsByClass(ctx, scope.SchoolID, scope.ClassID, subOID, now)
+	materials, err := s.repo.FindMaterialsByClass(ctx, scope.ClassID, subOID, now)
 	if err != nil {
 		return nil, err
 	}
@@ -306,7 +306,7 @@ func (s *studentServiceImpl) ListMaterials(ctx context.Context, scope *middlewar
 }
 
 func (s *studentServiceImpl) GetMaterialDetail(ctx context.Context, scope *middleware.StudentScope, materialID bson.ObjectID) (*studentdto.MaterialDetailDTO, error) {
-	m, err := s.repo.FindMaterialByID(ctx, scope.SchoolID, materialID)
+	m, err := s.repo.FindMaterialByID(ctx, materialID)
 	if err != nil {
 		return nil, err
 	}
@@ -348,7 +348,7 @@ func (s *studentServiceImpl) GetMaterialDetail(ctx context.Context, scope *middl
 }
 
 func (s *studentServiceImpl) GetMaterialDownloadURL(ctx context.Context, scope *middleware.StudentScope, materialID bson.ObjectID, fileIndex int) (string, error) {
-	m, err := s.repo.FindMaterialByID(ctx, scope.SchoolID, materialID)
+	m, err := s.repo.FindMaterialByID(ctx, materialID)
 	if err != nil {
 		return "", err
 	}
@@ -385,7 +385,7 @@ func (s *studentServiceImpl) ListAssignments(ctx context.Context, scope *middlew
 		}
 	}
 
-	assignments, err := s.repo.FindAssignmentsByClass(ctx, scope.SchoolID, scope.ClassID, subOID)
+	assignments, err := s.repo.FindAssignmentsByClass(ctx, scope.ClassID, subOID)
 	if err != nil {
 		return nil, err
 	}
@@ -411,7 +411,7 @@ func (s *studentServiceImpl) ListAssignments(ctx context.Context, scope *middlew
 		}
 		tName := teacherMap[a.TeacherID]
 
-		latestSub, _ := s.repo.FindLatestAssignmentSubmission(ctx, scope.SchoolID, a.ID, scope.StudentID)
+		latestSub, _ := s.repo.FindLatestAssignmentSubmission(ctx, a.ID, scope.StudentID)
 		status := "pending"
 		var subInfo *studentdto.SubmissionInfoDTO
 
@@ -454,7 +454,7 @@ func (s *studentServiceImpl) ListAssignments(ctx context.Context, scope *middlew
 }
 
 func (s *studentServiceImpl) GetAssignmentDetail(ctx context.Context, scope *middleware.StudentScope, assignmentID bson.ObjectID) (*studentdto.AssignmentDetailDTO, error) {
-	a, err := s.repo.FindAssignmentByID(ctx, scope.SchoolID, assignmentID)
+	a, err := s.repo.FindAssignmentByID(ctx, assignmentID)
 	if err != nil {
 		return nil, err
 	}
@@ -474,7 +474,7 @@ func (s *studentServiceImpl) GetAssignmentDetail(ctx context.Context, scope *mid
 	}
 	tName := teacherMap[a.TeacherID]
 
-	latestSub, _ := s.repo.FindLatestAssignmentSubmission(ctx, scope.SchoolID, a.ID, scope.StudentID)
+	latestSub, _ := s.repo.FindLatestAssignmentSubmission(ctx, a.ID, scope.StudentID)
 	status := "pending"
 	var subInfo *studentdto.SubmissionInfoDTO
 
@@ -518,7 +518,7 @@ func (s *studentServiceImpl) GetAssignmentDetail(ctx context.Context, scope *mid
 }
 
 func (s *studentServiceImpl) SubmitAssignment(ctx context.Context, scope *middleware.StudentScope, assignmentID bson.ObjectID, file *multipart.FileHeader, note string, isResubmit bool) (*studentdto.SubmissionInfoDTO, error) {
-	a, err := s.repo.FindAssignmentByID(ctx, scope.SchoolID, assignmentID)
+	a, err := s.repo.FindAssignmentByID(ctx, assignmentID)
 	if err != nil {
 		return nil, err
 	}
@@ -529,7 +529,7 @@ func (s *studentServiceImpl) SubmitAssignment(ctx context.Context, scope *middle
 		return nil, handler.NewForbiddenError("Tugas ini tidak ditujukan untuk kelas Anda")
 	}
 
-	latestSub, err := s.repo.FindLatestAssignmentSubmission(ctx, scope.SchoolID, assignmentID, scope.StudentID)
+	latestSub, err := s.repo.FindLatestAssignmentSubmission(ctx, assignmentID, scope.StudentID)
 	if err != nil {
 		return nil, err
 	}
@@ -557,7 +557,6 @@ func (s *studentServiceImpl) SubmitAssignment(ctx context.Context, scope *middle
 	now := time.Now().UTC()
 	sub := &model.AssignmentSubmission{
 		ID:           bson.NewObjectID(),
-		SchoolID:     scope.SchoolID,
 		AssignmentID: assignmentID,
 		StudentID:    scope.StudentID,
 		Files:        files,
@@ -582,7 +581,7 @@ func (s *studentServiceImpl) SubmitAssignment(ctx context.Context, scope *middle
 }
 
 func (s *studentServiceImpl) GetAssignmentFileDownloadURL(ctx context.Context, scope *middleware.StudentScope, assignmentID bson.ObjectID, fileIndex int) (string, error) {
-	a, err := s.repo.FindAssignmentByID(ctx, scope.SchoolID, assignmentID)
+	a, err := s.repo.FindAssignmentByID(ctx, assignmentID)
 	if err != nil {
 		return "", err
 	}
@@ -614,7 +613,7 @@ func (s *studentServiceImpl) ListProjects(ctx context.Context, scope *middleware
 		}
 	}
 
-	projects, err := s.repo.FindProjectsByClass(ctx, scope.SchoolID, scope.ClassID, subOID)
+	projects, err := s.repo.FindProjectsByClass(ctx, scope.ClassID, subOID)
 	if err != nil {
 		return nil, err
 	}
@@ -640,7 +639,7 @@ func (s *studentServiceImpl) ListProjects(ctx context.Context, scope *middleware
 		}
 		tName := teacherMap[p.TeacherID]
 
-		latestSub, _ := s.repo.FindLatestProjectSubmission(ctx, scope.SchoolID, p.ID, scope.StudentID)
+		latestSub, _ := s.repo.FindLatestProjectSubmission(ctx, p.ID, scope.StudentID)
 		status := "pending"
 		var subInfo *studentdto.SubmissionInfoDTO
 
@@ -682,7 +681,7 @@ func (s *studentServiceImpl) ListProjects(ctx context.Context, scope *middleware
 }
 
 func (s *studentServiceImpl) GetProjectDetail(ctx context.Context, scope *middleware.StudentScope, projectID bson.ObjectID) (*studentdto.ProjectDetailDTO, error) {
-	p, err := s.repo.FindProjectByID(ctx, scope.SchoolID, projectID)
+	p, err := s.repo.FindProjectByID(ctx, projectID)
 	if err != nil {
 		return nil, err
 	}
@@ -702,7 +701,7 @@ func (s *studentServiceImpl) GetProjectDetail(ctx context.Context, scope *middle
 	}
 	tName := teacherMap[p.TeacherID]
 
-	latestSub, _ := s.repo.FindLatestProjectSubmission(ctx, scope.SchoolID, p.ID, scope.StudentID)
+	latestSub, _ := s.repo.FindLatestProjectSubmission(ctx, p.ID, scope.StudentID)
 	status := "pending"
 	var subInfo *studentdto.SubmissionInfoDTO
 
@@ -746,7 +745,7 @@ func (s *studentServiceImpl) GetProjectDetail(ctx context.Context, scope *middle
 }
 
 func (s *studentServiceImpl) SubmitProject(ctx context.Context, scope *middleware.StudentScope, projectID bson.ObjectID, file *multipart.FileHeader, isResubmit bool) (*studentdto.SubmissionInfoDTO, error) {
-	p, err := s.repo.FindProjectByID(ctx, scope.SchoolID, projectID)
+	p, err := s.repo.FindProjectByID(ctx, projectID)
 	if err != nil {
 		return nil, err
 	}
@@ -757,7 +756,7 @@ func (s *studentServiceImpl) SubmitProject(ctx context.Context, scope *middlewar
 		return nil, handler.NewForbiddenError("Projek ini tidak ditujukan untuk kelas Anda")
 	}
 
-	latestSub, err := s.repo.FindLatestProjectSubmission(ctx, scope.SchoolID, projectID, scope.StudentID)
+	latestSub, err := s.repo.FindLatestProjectSubmission(ctx, projectID, scope.StudentID)
 	if err != nil {
 		return nil, err
 	}
@@ -785,7 +784,6 @@ func (s *studentServiceImpl) SubmitProject(ctx context.Context, scope *middlewar
 	now := time.Now().UTC()
 	sub := &model.ProjectSubmission{
 		ID:          bson.NewObjectID(),
-		SchoolID:    scope.SchoolID,
 		ProjectID:   projectID,
 		StudentID:   scope.StudentID,
 		Files:       files,
@@ -808,7 +806,7 @@ func (s *studentServiceImpl) SubmitProject(ctx context.Context, scope *middlewar
 }
 
 func (s *studentServiceImpl) GetProjectFileDownloadURL(ctx context.Context, scope *middleware.StudentScope, projectID bson.ObjectID, fileIndex int) (string, error) {
-	p, err := s.repo.FindProjectByID(ctx, scope.SchoolID, projectID)
+	p, err := s.repo.FindProjectByID(ctx, projectID)
 	if err != nil {
 		return "", err
 	}
@@ -840,7 +838,7 @@ func (s *studentServiceImpl) ListAssessments(ctx context.Context, scope *middlew
 		}
 	}
 
-	assessments, err := s.repo.FindAssessmentsByClass(ctx, scope.SchoolID, scope.ClassID, subOID)
+	assessments, err := s.repo.FindAssessmentsByClass(ctx, scope.ClassID, subOID)
 	if err != nil {
 		return nil, err
 	}
@@ -866,7 +864,7 @@ func (s *studentServiceImpl) ListAssessments(ctx context.Context, scope *middlew
 		}
 		tName := teacherMap[a.TeacherID]
 
-		attempt, _ := s.repo.FindAttemptByStudent(ctx, scope.SchoolID, a.ID, scope.StudentID)
+		attempt, _ := s.repo.FindAttemptByStudent(ctx, a.ID, scope.StudentID)
 		status := "available"
 		attemptID := ""
 		var score *float64
@@ -911,7 +909,7 @@ func (s *studentServiceImpl) ListAssessments(ctx context.Context, scope *middlew
 }
 
 func (s *studentServiceImpl) GetAssessmentDetail(ctx context.Context, scope *middleware.StudentScope, assessmentID bson.ObjectID) (*studentdto.AssessmentDetailDTO, error) {
-	a, err := s.repo.FindAssessmentByID(ctx, scope.SchoolID, assessmentID)
+	a, err := s.repo.FindAssessmentByID(ctx, assessmentID)
 	if err != nil {
 		return nil, err
 	}
@@ -923,7 +921,7 @@ func (s *studentServiceImpl) GetAssessmentDetail(ctx context.Context, scope *mid
 	}
 
 	questions, _ := s.repo.FindQuestionsByAssessmentID(ctx, assessmentID)
-	attempt, _ := s.repo.FindAttemptByStudent(ctx, scope.SchoolID, assessmentID, scope.StudentID)
+	attempt, _ := s.repo.FindAttemptByStudent(ctx, assessmentID, scope.StudentID)
 
 	subMap, _ := s.repo.FindSubjectsMap(ctx, []bson.ObjectID{a.SubjectID})
 	teacherMap, _ := s.repo.FindTeachersMap(ctx, []bson.ObjectID{a.TeacherID})
@@ -971,7 +969,7 @@ func (s *studentServiceImpl) GetAssessmentDetail(ctx context.Context, scope *mid
 }
 
 func (s *studentServiceImpl) StartAssessment(ctx context.Context, scope *middleware.StudentScope, assessmentID bson.ObjectID) (*studentdto.AssessmentStartResponseDTO, error) {
-	a, err := s.repo.FindAssessmentByID(ctx, scope.SchoolID, assessmentID)
+	a, err := s.repo.FindAssessmentByID(ctx, assessmentID)
 	if err != nil {
 		return nil, err
 	}
@@ -994,7 +992,7 @@ func (s *studentServiceImpl) StartAssessment(ctx context.Context, scope *middlew
 	}
 
 	// Single attempt rule: if an attempt already exists
-	attempt, err := s.repo.FindAttemptByStudent(ctx, scope.SchoolID, assessmentID, scope.StudentID)
+	attempt, err := s.repo.FindAttemptByStudent(ctx, assessmentID, scope.StudentID)
 	if err != nil {
 		return nil, err
 	}
@@ -1022,7 +1020,6 @@ func (s *studentServiceImpl) StartAssessment(ctx context.Context, scope *middlew
 
 		attempt = &model.AssessmentAttempt{
 			ID:           bson.NewObjectID(),
-			SchoolID:     scope.SchoolID,
 			AssessmentID: assessmentID,
 			StudentID:    scope.StudentID,
 			StartedAt:    now,
@@ -1073,7 +1070,7 @@ func (s *studentServiceImpl) StartAssessment(ctx context.Context, scope *middlew
 }
 
 func (s *studentServiceImpl) SubmitAssessment(ctx context.Context, scope *middleware.StudentScope, assessmentID bson.ObjectID, payload *studentdto.AssessmentSubmitPayload) (*studentdto.AssessmentResultResponseDTO, error) {
-	a, err := s.repo.FindAssessmentByID(ctx, scope.SchoolID, assessmentID)
+	a, err := s.repo.FindAssessmentByID(ctx, assessmentID)
 	if err != nil {
 		return nil, err
 	}
@@ -1081,7 +1078,7 @@ func (s *studentServiceImpl) SubmitAssessment(ctx context.Context, scope *middle
 		return nil, handler.ErrNotFound
 	}
 
-	attempt, err := s.repo.FindAttemptByStudent(ctx, scope.SchoolID, assessmentID, scope.StudentID)
+	attempt, err := s.repo.FindAttemptByStudent(ctx, assessmentID, scope.StudentID)
 	if err != nil {
 		return nil, err
 	}
@@ -1124,7 +1121,6 @@ func (s *studentServiceImpl) SubmitAssessment(ctx context.Context, scope *middle
 				AttemptID:  attempt.ID,
 				QuestionID: qOID,
 				Answer:     ans.Answer,
-				SchoolID:   scope.SchoolID,
 			}
 
 			if q.Type == model.QuestionMCQ {
@@ -1210,7 +1206,7 @@ func (s *studentServiceImpl) SubmitAssessment(ctx context.Context, scope *middle
 }
 
 func (s *studentServiceImpl) GetAssessmentResult(ctx context.Context, scope *middleware.StudentScope, assessmentID bson.ObjectID) (*studentdto.AssessmentResultResponseDTO, error) {
-	a, err := s.repo.FindAssessmentByID(ctx, scope.SchoolID, assessmentID)
+	a, err := s.repo.FindAssessmentByID(ctx, assessmentID)
 	if err != nil {
 		return nil, err
 	}
@@ -1218,7 +1214,7 @@ func (s *studentServiceImpl) GetAssessmentResult(ctx context.Context, scope *mid
 		return nil, handler.ErrNotFound
 	}
 
-	attempt, err := s.repo.FindAttemptByStudent(ctx, scope.SchoolID, assessmentID, scope.StudentID)
+	attempt, err := s.repo.FindAttemptByStudent(ctx, assessmentID, scope.StudentID)
 	if err != nil {
 		return nil, err
 	}
@@ -1285,7 +1281,7 @@ func (s *studentServiceImpl) GetAssessmentResult(ctx context.Context, scope *mid
 
 func (s *studentServiceImpl) GetGrades(ctx context.Context, scope *middleware.StudentScope) ([]studentdto.SubjectGradeDTO, error) {
 	// Strict filter: only student's own grades in active academic year
-	grades, err := s.repo.FindGradesByStudent(ctx, scope.SchoolID, scope.StudentID, scope.AcademicYearID)
+	grades, err := s.repo.FindGradesByStudent(ctx, scope.StudentID, scope.AcademicYearID)
 	if err != nil {
 		return nil, err
 	}
@@ -1361,7 +1357,7 @@ func (s *studentServiceImpl) GetGrades(ctx context.Context, scope *middleware.St
 		}
 
 		// Config weights (default: 60/20/20)
-		cfg, _ := s.repo.FindGradingConfig(ctx, scope.SchoolID, scope.AcademicYearID, &sid)
+		cfg, _ := s.repo.FindGradingConfig(ctx, scope.AcademicYearID, &sid)
 		dailyWeight := 0.6
 		utsWeight := 0.2
 		uasWeight := 0.2
@@ -1415,7 +1411,7 @@ func (s *studentServiceImpl) GetSubjectGradeDetail(ctx context.Context, scope *m
 		return nil, handler.ErrNotFound
 	}
 
-	grades, err := s.repo.FindGradesByStudent(ctx, scope.SchoolID, scope.StudentID, scope.AcademicYearID)
+	grades, err := s.repo.FindGradesByStudent(ctx, scope.StudentID, scope.AcademicYearID)
 	if err != nil {
 		return nil, err
 	}
@@ -1499,7 +1495,7 @@ func (s *studentServiceImpl) GetSubjectGradeDetail(ctx context.Context, scope *m
 // -------------------------------------------------------------
 
 func (s *studentServiceImpl) GetSchedule(ctx context.Context, scope *middleware.StudentScope) ([]studentdto.ScheduleItemDTO, error) {
-	schedules, err := s.repo.FindSchedulesByClass(ctx, scope.SchoolID, scope.ClassID, scope.AcademicYearID)
+	schedules, err := s.repo.FindSchedulesByClass(ctx, scope.ClassID, scope.AcademicYearID)
 	if err != nil {
 		return nil, err
 	}
@@ -1544,7 +1540,7 @@ func (s *studentServiceImpl) GetSchedule(ctx context.Context, scope *middleware.
 
 func (s *studentServiceImpl) GetRanking(ctx context.Context, scope *middleware.StudentScope) (*studentdto.ClassRankingResponseDTO, error) {
 	// Only students in the same class
-	students, err := s.repo.FindClassStudents(ctx, scope.SchoolID, scope.ClassID)
+	students, err := s.repo.FindClassStudents(ctx, scope.ClassID)
 	if err != nil {
 		return nil, err
 	}
@@ -1573,7 +1569,7 @@ func (s *studentServiceImpl) GetRanking(ctx context.Context, scope *middleware.S
 
 	var entries []studentScoreEntry
 	for _, st := range students {
-		grades, _ := s.repo.FindGradesByStudent(ctx, scope.SchoolID, st.ID, scope.AcademicYearID)
+		grades, _ := s.repo.FindGradesByStudent(ctx, st.ID, scope.AcademicYearID)
 
 		// Calculate average of all subjects for student
 		var allScores []float64

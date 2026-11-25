@@ -88,7 +88,7 @@ func (s *assessmentServiceImpl) ListAssessments(ctx context.Context, scope *midd
 		page = 1
 	}
 
-	list, total, err := s.repo.FindAssessments(ctx, scope.SchoolID, scope.TeacherID, classID, subjectID, search, page, limit)
+	list, total, err := s.repo.FindAssessments(ctx, scope.TeacherID, classID, subjectID, search, page, limit)
 	if err != nil {
 		return nil, nil, err
 	}
@@ -113,7 +113,7 @@ func (s *assessmentServiceImpl) ListAssessments(ctx context.Context, scope *midd
 		allSubjectIDs = append(allSubjectIDs, sid)
 	}
 
-	classMap, _ := s.repo.FindClassesMap(ctx, scope.SchoolID, allClassIDs)
+	classMap, _ := s.repo.FindClassesMap(ctx, allClassIDs)
 	subjectMap, _ := s.repo.FindSubjectsMap(ctx, allSubjectIDs)
 
 	result := make([]teacherdto.AssessmentListDTO, 0, len(list))
@@ -138,7 +138,7 @@ func (s *assessmentServiceImpl) ListAssessments(ctx context.Context, scope *midd
 			totalScore += q.Weight
 		}
 
-		attemptCount, _ := s.repo.CountAttemptsByAssessmentID(ctx, scope.SchoolID, a.ID)
+		attemptCount, _ := s.repo.CountAttemptsByAssessmentID(ctx, a.ID)
 
 		result = append(result, teacherdto.AssessmentListDTO{
 			ID:              a.ID.Hex(),
@@ -179,7 +179,7 @@ func (s *assessmentServiceImpl) GetAssessmentDetail(ctx context.Context, scope *
 		return nil, handler.ErrNotFound
 	}
 
-	a, err := s.repo.FindAssessmentByID(ctx, scope.SchoolID, scope.TeacherID, id)
+	a, err := s.repo.FindAssessmentByID(ctx, scope.TeacherID, id)
 	if err != nil {
 		return nil, err
 	}
@@ -187,7 +187,7 @@ func (s *assessmentServiceImpl) GetAssessmentDetail(ctx context.Context, scope *
 		return nil, handler.ErrNotFound
 	}
 
-	classMap, _ := s.repo.FindClassesMap(ctx, scope.SchoolID, a.ClassIDs)
+	classMap, _ := s.repo.FindClassesMap(ctx, a.ClassIDs)
 	subjectMap, _ := s.repo.FindSubjectsMap(ctx, []bson.ObjectID{a.SubjectID})
 
 	subName := ""
@@ -226,7 +226,7 @@ func (s *assessmentServiceImpl) GetAssessmentDetail(ctx context.Context, scope *
 		})
 	}
 
-	attemptCount, _ := s.repo.CountAttemptsByAssessmentID(ctx, scope.SchoolID, a.ID)
+	attemptCount, _ := s.repo.CountAttemptsByAssessmentID(ctx, a.ID)
 
 	return &teacherdto.AssessmentResponseDTO{
 		ID:               a.ID.Hex(),
@@ -318,7 +318,6 @@ func (s *assessmentServiceImpl) CreateAssessment(ctx context.Context, scope *mid
 	now := time.Now().UTC()
 	as := &model.Assessment{
 		ID:               bson.NewObjectID(),
-		SchoolID:         scope.SchoolID,
 		TeacherID:        scope.TeacherID,
 		SubjectID:        subjectID,
 		ClassIDs:         classOIDs,
@@ -348,7 +347,7 @@ func (s *assessmentServiceImpl) UpdateAssessment(ctx context.Context, scope *mid
 		return nil, handler.ErrUnauthorized
 	}
 
-	as, err := s.repo.FindAssessmentByID(ctx, scope.SchoolID, scope.TeacherID, id)
+	as, err := s.repo.FindAssessmentByID(ctx, scope.TeacherID, id)
 	if err != nil {
 		return nil, err
 	}
@@ -429,7 +428,7 @@ func (s *assessmentServiceImpl) DeleteAssessment(ctx context.Context, scope *mid
 		return handler.ErrUnauthorized
 	}
 
-	as, err := s.repo.FindAssessmentByID(ctx, scope.SchoolID, scope.TeacherID, id)
+	as, err := s.repo.FindAssessmentByID(ctx, scope.TeacherID, id)
 	if err != nil {
 		return err
 	}
@@ -438,7 +437,7 @@ func (s *assessmentServiceImpl) DeleteAssessment(ctx context.Context, scope *mid
 	}
 
 	// Rule: Delete only if no attempts exist, otherwise 409
-	count, err := s.repo.CountAttemptsByAssessmentID(ctx, scope.SchoolID, id)
+	count, err := s.repo.CountAttemptsByAssessmentID(ctx, id)
 	if err != nil {
 		return err
 	}
@@ -446,7 +445,7 @@ func (s *assessmentServiceImpl) DeleteAssessment(ctx context.Context, scope *mid
 		return handler.NewConflictError("Assessment tidak dapat dihapus karena sudah memiliki attempt pengerjaan dari siswa")
 	}
 
-	return s.repo.DeleteAssessment(ctx, scope.SchoolID, scope.TeacherID, id)
+	return s.repo.DeleteAssessment(ctx, scope.TeacherID, id)
 }
 
 func (s *assessmentServiceImpl) AddQuestion(ctx context.Context, scope *middleware.TeacherScope, assessmentID bson.ObjectID, payload *teacherdto.QuestionCreateUpdatePayload) (*teacherdto.QuestionTeacherDTO, error) {
@@ -454,7 +453,7 @@ func (s *assessmentServiceImpl) AddQuestion(ctx context.Context, scope *middlewa
 		return nil, handler.ErrUnauthorized
 	}
 
-	as, err := s.repo.FindAssessmentByID(ctx, scope.SchoolID, scope.TeacherID, assessmentID)
+	as, err := s.repo.FindAssessmentByID(ctx, scope.TeacherID, assessmentID)
 	if err != nil {
 		return nil, err
 	}
@@ -463,7 +462,7 @@ func (s *assessmentServiceImpl) AddQuestion(ctx context.Context, scope *middlewa
 	}
 
 	// Rule: Setelah ada attempt: soal, bobot, kunci tidak boleh diubah (409)
-	count, err := s.repo.CountAttemptsByAssessmentID(ctx, scope.SchoolID, assessmentID)
+	count, err := s.repo.CountAttemptsByAssessmentID(ctx, assessmentID)
 	if err != nil {
 		return nil, err
 	}
@@ -509,7 +508,6 @@ func (s *assessmentServiceImpl) AddQuestion(ctx context.Context, scope *middlewa
 	q := &model.AssessmentQuestion{
 		ID:            bson.NewObjectID(),
 		AssessmentID:  as.ID,
-		SchoolID:      scope.SchoolID,
 		Type:          qType,
 		Text:          text,
 		Options:       options,
@@ -542,7 +540,7 @@ func (s *assessmentServiceImpl) UpdateQuestion(ctx context.Context, scope *middl
 		return nil, handler.ErrUnauthorized
 	}
 
-	as, err := s.repo.FindAssessmentByID(ctx, scope.SchoolID, scope.TeacherID, assessmentID)
+	as, err := s.repo.FindAssessmentByID(ctx, scope.TeacherID, assessmentID)
 	if err != nil {
 		return nil, err
 	}
@@ -551,7 +549,7 @@ func (s *assessmentServiceImpl) UpdateQuestion(ctx context.Context, scope *middl
 	}
 
 	// Rule: Setelah ada attempt: soal, bobot, kunci tidak boleh diubah (409)
-	count, err := s.repo.CountAttemptsByAssessmentID(ctx, scope.SchoolID, assessmentID)
+	count, err := s.repo.CountAttemptsByAssessmentID(ctx, assessmentID)
 	if err != nil {
 		return nil, err
 	}
@@ -612,7 +610,7 @@ func (s *assessmentServiceImpl) DeleteQuestion(ctx context.Context, scope *middl
 		return handler.ErrUnauthorized
 	}
 
-	as, err := s.repo.FindAssessmentByID(ctx, scope.SchoolID, scope.TeacherID, assessmentID)
+	as, err := s.repo.FindAssessmentByID(ctx, scope.TeacherID, assessmentID)
 	if err != nil {
 		return err
 	}
@@ -620,7 +618,7 @@ func (s *assessmentServiceImpl) DeleteQuestion(ctx context.Context, scope *middl
 		return handler.ErrNotFound
 	}
 
-	count, err := s.repo.CountAttemptsByAssessmentID(ctx, scope.SchoolID, assessmentID)
+	count, err := s.repo.CountAttemptsByAssessmentID(ctx, assessmentID)
 	if err != nil {
 		return err
 	}
@@ -636,7 +634,7 @@ func (s *assessmentServiceImpl) ReorderQuestions(ctx context.Context, scope *mid
 		return handler.ErrUnauthorized
 	}
 
-	as, err := s.repo.FindAssessmentByID(ctx, scope.SchoolID, scope.TeacherID, assessmentID)
+	as, err := s.repo.FindAssessmentByID(ctx, scope.TeacherID, assessmentID)
 	if err != nil {
 		return err
 	}
@@ -644,7 +642,7 @@ func (s *assessmentServiceImpl) ReorderQuestions(ctx context.Context, scope *mid
 		return handler.ErrNotFound
 	}
 
-	count, err := s.repo.CountAttemptsByAssessmentID(ctx, scope.SchoolID, assessmentID)
+	count, err := s.repo.CountAttemptsByAssessmentID(ctx, assessmentID)
 	if err != nil {
 		return err
 	}
@@ -669,7 +667,7 @@ func (s *assessmentServiceImpl) RegradeMCQ(ctx context.Context, scope *middlewar
 		return handler.ErrUnauthorized
 	}
 
-	as, err := s.repo.FindAssessmentByID(ctx, scope.SchoolID, scope.TeacherID, assessmentID)
+	as, err := s.repo.FindAssessmentByID(ctx, scope.TeacherID, assessmentID)
 	if err != nil {
 		return err
 	}
@@ -702,7 +700,7 @@ func (s *assessmentServiceImpl) RegradeMCQ(ctx context.Context, scope *middlewar
 	question.CorrectOption = &payload.NewCorrectOption
 
 	// Find all attempts on this assessment
-	attempts, err := s.repo.FindAttempts(ctx, scope.SchoolID, assessmentID)
+	attempts, err := s.repo.FindAttempts(ctx, assessmentID)
 	if err != nil {
 		return err
 	}
@@ -747,7 +745,7 @@ func (s *assessmentServiceImpl) RegradeMCQ(ctx context.Context, scope *middlewar
 
 		// If attempt was already graded, update grade record
 		if att.Status == model.AttemptGraded {
-			student, _ := s.repo.FindStudentByID(ctx, scope.SchoolID, att.StudentID)
+			student, _ := s.repo.FindStudentByID(ctx, att.StudentID)
 			if student != nil {
 				updatedGrades = append(updatedGrades, &model.Grade{
 					StudentID:      student.ID,
@@ -765,7 +763,6 @@ func (s *assessmentServiceImpl) RegradeMCQ(ctx context.Context, scope *middlewar
 
 	audit := &model.AuditLog{
 		ID:         bson.NewObjectID(),
-		SchoolID:   scope.SchoolID,
 		UserID:     scope.UserID,
 		Action:     "regrade_mcq",
 		EntityType: "assessment_question",
@@ -778,7 +775,7 @@ func (s *assessmentServiceImpl) RegradeMCQ(ctx context.Context, scope *middlewar
 		Timestamp: time.Now().UTC(),
 	}
 
-	return s.repo.RegradeMCQInTransaction(ctx, scope.SchoolID, scope.TeacherID, question, attempts, updatedAnswers, updatedGrades, audit)
+	return s.repo.RegradeMCQInTransaction(ctx, scope.TeacherID, question, attempts, updatedAnswers, updatedGrades, audit)
 }
 
 func (s *assessmentServiceImpl) PublishAssessment(ctx context.Context, scope *middleware.TeacherScope, id bson.ObjectID) (*teacherdto.AssessmentResponseDTO, error) {
@@ -786,7 +783,7 @@ func (s *assessmentServiceImpl) PublishAssessment(ctx context.Context, scope *mi
 		return nil, handler.ErrUnauthorized
 	}
 
-	as, err := s.repo.FindAssessmentByID(ctx, scope.SchoolID, scope.TeacherID, id)
+	as, err := s.repo.FindAssessmentByID(ctx, scope.TeacherID, id)
 	if err != nil {
 		return nil, err
 	}
@@ -836,7 +833,7 @@ func (s *assessmentServiceImpl) PublishAssessment(ctx context.Context, scope *mi
 
 	// Trigger notification
 	if s.notifSvc != nil {
-		_ = s.notifSvc.NotifyClasses(ctx, scope.SchoolID, as.ClassIDs, "new_assessment", "Assessment Baru: "+as.Title, fmt.Sprintf("Assessment baru telah dipublikasikan dengan batas waktu %s", as.EndAt.Format("02 Jan 2006 15:04")), "assessment", as.ID)
+		_ = s.notifSvc.NotifyClasses(ctx, as.ClassIDs, "new_assessment", "Assessment Baru: "+as.Title, fmt.Sprintf("Assessment baru telah dipublikasikan dengan batas waktu %s", as.EndAt.Format("02 Jan 2006 15:04")), "assessment", as.ID)
 	}
 
 	return s.GetAssessmentDetail(ctx, scope, as.ID)
@@ -847,7 +844,7 @@ func (s *assessmentServiceImpl) CloseAssessment(ctx context.Context, scope *midd
 		return nil, handler.ErrUnauthorized
 	}
 
-	as, err := s.repo.FindAssessmentByID(ctx, scope.SchoolID, scope.TeacherID, id)
+	as, err := s.repo.FindAssessmentByID(ctx, scope.TeacherID, id)
 	if err != nil {
 		return nil, err
 	}
@@ -870,7 +867,7 @@ func (s *assessmentServiceImpl) ListAttempts(ctx context.Context, scope *middlew
 		return nil, nil, handler.ErrUnauthorized
 	}
 
-	as, err := s.repo.FindAssessmentByID(ctx, scope.SchoolID, scope.TeacherID, assessmentID)
+	as, err := s.repo.FindAssessmentByID(ctx, scope.TeacherID, assessmentID)
 	if err != nil {
 		return nil, nil, err
 	}
@@ -892,7 +889,7 @@ func (s *assessmentServiceImpl) ListAttempts(ctx context.Context, scope *middlew
 		targetClasses = []bson.ObjectID{*filterClassID}
 	}
 
-	students, err := s.repo.FindStudentsByClassIDs(ctx, scope.SchoolID, targetClasses)
+	students, err := s.repo.FindStudentsByClassIDs(ctx, targetClasses)
 	if err != nil {
 		return nil, nil, err
 	}
@@ -904,9 +901,9 @@ func (s *assessmentServiceImpl) ListAttempts(ctx context.Context, scope *middlew
 		}
 	}
 	userMap, _ := s.repo.FindUsersMap(ctx, userIDs)
-	classMap, _ := s.repo.FindClassesMap(ctx, scope.SchoolID, as.ClassIDs)
+	classMap, _ := s.repo.FindClassesMap(ctx, as.ClassIDs)
 
-	attempts, err := s.repo.FindAttempts(ctx, scope.SchoolID, assessmentID)
+	attempts, err := s.repo.FindAttempts(ctx, assessmentID)
 	if err != nil {
 		return nil, nil, err
 	}
@@ -1026,7 +1023,7 @@ func (s *assessmentServiceImpl) GetAttemptDetail(ctx context.Context, scope *mid
 		return nil, handler.ErrUnauthorized
 	}
 
-	as, err := s.repo.FindAssessmentByID(ctx, scope.SchoolID, scope.TeacherID, assessmentID)
+	as, err := s.repo.FindAssessmentByID(ctx, scope.TeacherID, assessmentID)
 	if err != nil {
 		return nil, err
 	}
@@ -1034,7 +1031,7 @@ func (s *assessmentServiceImpl) GetAttemptDetail(ctx context.Context, scope *mid
 		return nil, handler.ErrNotFound
 	}
 
-	att, err := s.repo.FindAttemptByID(ctx, scope.SchoolID, attemptID)
+	att, err := s.repo.FindAttemptByID(ctx, attemptID)
 	if err != nil {
 		return nil, err
 	}
@@ -1042,7 +1039,7 @@ func (s *assessmentServiceImpl) GetAttemptDetail(ctx context.Context, scope *mid
 		return nil, handler.ErrNotFound
 	}
 
-	st, err := s.repo.FindStudentByID(ctx, scope.SchoolID, att.StudentID)
+	st, err := s.repo.FindStudentByID(ctx, att.StudentID)
 	if err != nil {
 		return nil, err
 	}
@@ -1056,7 +1053,7 @@ func (s *assessmentServiceImpl) GetAttemptDetail(ctx context.Context, scope *mid
 		studentName = u.Name
 	}
 
-	classMap, _ := s.repo.FindClassesMap(ctx, scope.SchoolID, []bson.ObjectID{st.ClassID})
+	classMap, _ := s.repo.FindClassesMap(ctx, []bson.ObjectID{st.ClassID})
 	className := ""
 	if cl, ok := classMap[st.ClassID]; ok && cl != nil {
 		className = cl.Name
@@ -1134,7 +1131,7 @@ func (s *assessmentServiceImpl) GradeEssayAnswer(ctx context.Context, scope *mid
 		return handler.ErrUnauthorized
 	}
 
-	as, err := s.repo.FindAssessmentByID(ctx, scope.SchoolID, scope.TeacherID, assessmentID)
+	as, err := s.repo.FindAssessmentByID(ctx, scope.TeacherID, assessmentID)
 	if err != nil {
 		return err
 	}
@@ -1150,7 +1147,7 @@ func (s *assessmentServiceImpl) GradeEssayAnswer(ctx context.Context, scope *mid
 		return handler.ErrNotFound
 	}
 
-	att, err := s.repo.FindAttemptByID(ctx, scope.SchoolID, ans.AttemptID)
+	att, err := s.repo.FindAttemptByID(ctx, ans.AttemptID)
 	if err != nil {
 		return err
 	}
@@ -1219,7 +1216,7 @@ func (s *assessmentServiceImpl) GradeEssayAnswer(ctx context.Context, scope *mid
 	var grade *model.Grade
 	if allEssaysGraded {
 		att.Status = model.AttemptGraded
-		student, _ := s.repo.FindStudentByID(ctx, scope.SchoolID, att.StudentID)
+		student, _ := s.repo.FindStudentByID(ctx, att.StudentID)
 		if student != nil {
 			grade = &model.Grade{
 				StudentID:      student.ID,
@@ -1240,7 +1237,6 @@ func (s *assessmentServiceImpl) GradeEssayAnswer(ctx context.Context, scope *mid
 	now := time.Now().UTC()
 	audit := &model.AuditLog{
 		ID:         bson.NewObjectID(),
-		SchoolID:   scope.SchoolID,
 		UserID:     scope.UserID,
 		Action:     "grade_essay",
 		EntityType: "assessment_answer",
@@ -1254,17 +1250,16 @@ func (s *assessmentServiceImpl) GradeEssayAnswer(ctx context.Context, scope *mid
 		Timestamp: now,
 	}
 
-	if err := s.repo.GradeEssayInTransaction(ctx, scope.SchoolID, scope.TeacherID, ans, att, grade, audit); err != nil {
+	if err := s.repo.GradeEssayInTransaction(ctx, scope.TeacherID, ans, att, grade, audit); err != nil {
 		return err
 	}
 
 	// If all essays are graded, notify the student
 	if allEssaysGraded && s.notifRepo != nil {
-		student, _ := s.repo.FindStudentByID(ctx, scope.SchoolID, att.StudentID)
+		student, _ := s.repo.FindStudentByID(ctx, att.StudentID)
 		if student != nil && !student.UserID.IsZero() {
 			notif := &model.Notification{
 				ID:        bson.NewObjectID(),
-				SchoolID:  scope.SchoolID,
 				UserID:    student.UserID,
 				Type:      "grade_released",
 				Title:     "Nilai Keluar: " + as.Title,
@@ -1284,7 +1279,7 @@ func (s *assessmentServiceImpl) GradeEssayAnswer(ctx context.Context, scope *mid
 
 // FinalizeExpiredAttempt auto-finalizes attempts whose timer has expired.
 func (s *assessmentServiceImpl) FinalizeExpiredAttempt(ctx context.Context, attemptID bson.ObjectID) error {
-	att, err := s.repo.FindAttemptByID(ctx, bson.NilObjectID, attemptID)
+	att, err := s.repo.FindAttemptByID(ctx, attemptID)
 	if err != nil {
 		return err
 	}
@@ -1297,7 +1292,7 @@ func (s *assessmentServiceImpl) FinalizeExpiredAttempt(ctx context.Context, atte
 		return nil
 	}
 
-	as, err := s.repo.FindAssessmentByID(ctx, att.SchoolID, bson.NilObjectID, att.AssessmentID)
+	as, err := s.repo.FindAssessmentByID(ctx, bson.NilObjectID, att.AssessmentID)
 	if err != nil || as == nil {
 		return err
 	}

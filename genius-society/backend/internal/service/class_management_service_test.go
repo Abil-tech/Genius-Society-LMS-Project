@@ -38,9 +38,9 @@ func (m *mockClassRepoForService) Create(ctx context.Context, c *model.Class) er
 	return nil
 }
 
-func (m *mockClassRepoForService) ExistsByCode(ctx context.Context, schoolID, academicYearID bson.ObjectID, code string) (bool, error) {
+func (m *mockClassRepoForService) ExistsByCode(ctx context.Context, academicYearID bson.ObjectID, code string) (bool, error) {
 	for _, c := range m.classes {
-		if c.SchoolID == schoolID && c.AcademicYearID == academicYearID && c.Code == code && c.Status != "archived" {
+		if c.AcademicYearID == academicYearID && c.Code == code && c.Status != "archived" {
 			return true, nil
 		}
 	}
@@ -114,17 +114,15 @@ func (m *mockClassRepoForService) CountByFilter(ctx context.Context, filter bson
 	return total, nil
 }
 
-func TestClassService_SchoolIsolation(t *testing.T) {
+func TestClassService_CRUD(t *testing.T) {
 	repo := newMockClassRepoForService()
 	svc := NewClassService(repo)
 	ctx := context.Background()
 
-	schoolA := bson.NewObjectID()
-	schoolB := bson.NewObjectID()
 	academicYearID := bson.NewObjectID()
 
-	// 1. Create Class in School A
-	classA, err := svc.CreateClass(ctx, schoolA, academicYearID, &dto.ClassCreateDTO{
+	// 1. Create Class
+	classA, err := svc.CreateClass(ctx, academicYearID, &dto.ClassCreateDTO{
 		Code:           "10-IPA-1",
 		Name:           "10 IPA 1",
 		EducationLevel: "SMA",
@@ -132,14 +130,11 @@ func TestClassService_SchoolIsolation(t *testing.T) {
 		Status:         "active",
 	})
 	if err != nil {
-		t.Fatalf("unexpected error creating class in school A: %v", err)
-	}
-	if classA.SchoolID != schoolA {
-		t.Fatalf("expected classA schoolID to be %s, got %s", schoolA.Hex(), classA.SchoolID.Hex())
+		t.Fatalf("unexpected error creating class: %v", err)
 	}
 
-	// 2. Class code duplicate in SAME school should fail
-	_, err = svc.CreateClass(ctx, schoolA, academicYearID, &dto.ClassCreateDTO{
+	// 2. Class code duplicate in same academic year should fail
+	_, err = svc.CreateClass(ctx, academicYearID, &dto.ClassCreateDTO{
 		Code:           "10-IPA-1",
 		Name:           "10 IPA 1 Duplicate",
 		EducationLevel: "SMA",
@@ -147,74 +142,39 @@ func TestClassService_SchoolIsolation(t *testing.T) {
 		Status:         "active",
 	})
 	if err == nil {
-		t.Fatal("expected error creating class with duplicate code in the same school, got nil")
+		t.Fatal("expected error creating class with duplicate code, got nil")
 	}
 
-	// 3. Same class code in DIFFERENT school (School B) MUST SUCCEED (school isolation)
-	classB, err := svc.CreateClass(ctx, schoolB, academicYearID, &dto.ClassCreateDTO{
-		Code:           "10-IPA-1",
-		Name:           "10 IPA 1 School B",
-		EducationLevel: "SMA",
-		Capacity:       32,
-		Status:         "active",
-	})
+	// 3. GetClassDetail MUST SUCCEED
+	detailA, err := svc.GetClassDetail(ctx, classA.ID)
 	if err != nil {
-		t.Fatalf("unexpected error creating same class code in school B: %v", err)
-	}
-	if classB.SchoolID != schoolB {
-		t.Fatalf("expected classB schoolID to be %s, got %s", schoolB.Hex(), classB.SchoolID.Hex())
-	}
-
-	// 4. Cross-School GetClassDetail: School B admin trying to view School A class MUST FAIL
-	_, err = svc.GetClassDetail(ctx, schoolB, classA.ID)
-	if err == nil {
-		t.Fatal("expected cross-school GetClassDetail to fail, but it succeeded")
-	}
-
-	// Same-School GetClassDetail: School A admin viewing School A class MUST SUCCEED
-	detailA, err := svc.GetClassDetail(ctx, schoolA, classA.ID)
-	if err != nil {
-		t.Fatalf("expected GetClassDetail to succeed for owner school: %v", err)
+		t.Fatalf("expected GetClassDetail to succeed: %v", err)
 	}
 	if detailA.ID != classA.ID {
 		t.Fatalf("expected class ID %s, got %s", classA.ID.Hex(), detailA.ID.Hex())
 	}
 
-	// 5. Cross-School UpdateClass: School B admin trying to update School A class MUST FAIL
-	newName := "Hacked Name"
-	_, err = svc.UpdateClass(ctx, schoolB, classA.ID, &dto.ClassUpdateDTO{
+	// 4. UpdateClass MUST SUCCEED
+	newName := "Updated Name"
+	_, err = svc.UpdateClass(ctx, classA.ID, &dto.ClassUpdateDTO{
 		Name: &newName,
 	})
-	if err == nil {
-		t.Fatal("expected cross-school UpdateClass to fail, but it succeeded")
-	}
-
-	// 6. Cross-School ArchiveClass: School B admin trying to archive School A class MUST FAIL
-	err = svc.ArchiveClass(ctx, schoolB, classA.ID)
-	if err == nil {
-		t.Fatal("expected cross-school ArchiveClass to fail, but it succeeded")
-	}
-
-	// Same-School ArchiveClass: School A admin archiving School A class MUST SUCCEED
-	err = svc.ArchiveClass(ctx, schoolA, classA.ID)
 	if err != nil {
-		t.Fatalf("expected ArchiveClass to succeed for owner school: %v", err)
+		t.Fatalf("expected UpdateClass to succeed: %v", err)
+	}
+
+	// 5. ArchiveClass MUST SUCCEED
+	err = svc.ArchiveClass(ctx, classA.ID)
+	if err != nil {
+		t.Fatalf("expected ArchiveClass to succeed: %v", err)
 	}
 	if classA.Status != "archived" {
 		t.Fatalf("expected class status to be archived, got %s", classA.Status)
 	}
 
-	// 7. ListClasses must enforce school filter
-	listRes, err := svc.ListClasses(ctx, schoolA, &dto.ClassListFilter{})
+	// 6. ListClasses
+	_, err = svc.ListClasses(ctx, &dto.ClassListFilter{})
 	if err != nil {
 		t.Fatalf("unexpected error on ListClasses: %v", err)
-	}
-	for _, item := range listRes.Items {
-		if item.SchoolID != schoolA {
-			t.Fatalf("leak detected in ListClasses: returned class belonging to school %s when queried for %s", item.SchoolID.Hex(), schoolA.Hex())
-		}
-	}
-	if repo.lastFilterReceived["schoolId"] != schoolA {
-		t.Fatalf("repo did not receive expected schoolID filter: got %v", repo.lastFilterReceived["schoolId"])
 	}
 }

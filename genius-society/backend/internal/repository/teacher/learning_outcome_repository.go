@@ -13,22 +13,22 @@ import (
 // LearningOutcomeRepository handles database queries for Pencapaian Pembelajaran (PP).
 type LearningOutcomeRepository interface {
 	Create(ctx context.Context, lo *model.LearningOutcome) error
-	FindByID(ctx context.Context, schoolID, teacherID, id bson.ObjectID) (*model.LearningOutcome, error)
-	FindList(ctx context.Context, schoolID, teacherID, academicYearID bson.ObjectID, semester int, subjectID *bson.ObjectID, classID *bson.ObjectID) ([]model.LearningOutcome, error)
+	FindByID(ctx context.Context, teacherID, id bson.ObjectID) (*model.LearningOutcome, error)
+	FindList(ctx context.Context, teacherID, academicYearID bson.ObjectID, semester int, subjectID *bson.ObjectID, classID *bson.ObjectID) ([]model.LearningOutcome, error)
 	Update(ctx context.Context, lo *model.LearningOutcome) error
-	Delete(ctx context.Context, schoolID, teacherID, id bson.ObjectID) error
-	CountItemsByOutcomeID(ctx context.Context, schoolID, outcomeID bson.ObjectID) (int64, error)
+	Delete(ctx context.Context, teacherID, id bson.ObjectID) error
+	CountItemsByOutcomeID(ctx context.Context, outcomeID bson.ObjectID) (int64, error)
 
-	FindAssignmentByID(ctx context.Context, schoolID, teacherID, id bson.ObjectID) (*model.Assignment, error)
-	UpdateAssignmentOutcome(ctx context.Context, schoolID, teacherID, id bson.ObjectID, outcomeID *bson.ObjectID) error
+	FindAssignmentByID(ctx context.Context, teacherID, id bson.ObjectID) (*model.Assignment, error)
+	UpdateAssignmentOutcome(ctx context.Context, teacherID, id bson.ObjectID, outcomeID *bson.ObjectID) error
 
-	FindProjectByID(ctx context.Context, schoolID, teacherID, id bson.ObjectID) (*model.Project, error)
-	UpdateProjectOutcome(ctx context.Context, schoolID, teacherID, id bson.ObjectID, outcomeID *bson.ObjectID) error
+	FindProjectByID(ctx context.Context, teacherID, id bson.ObjectID) (*model.Project, error)
+	UpdateProjectOutcome(ctx context.Context, teacherID, id bson.ObjectID, outcomeID *bson.ObjectID) error
 
-	FindAssessmentByID(ctx context.Context, schoolID, teacherID, id bson.ObjectID) (*model.Assessment, error)
-	UpdateAssessmentOutcome(ctx context.Context, schoolID, teacherID, id bson.ObjectID, outcomeID *bson.ObjectID) error
+	FindAssessmentByID(ctx context.Context, teacherID, id bson.ObjectID) (*model.Assessment, error)
+	UpdateAssessmentOutcome(ctx context.Context, teacherID, id bson.ObjectID, outcomeID *bson.ObjectID) error
 
-	FindClassesMap(ctx context.Context, schoolID bson.ObjectID, classIDs []bson.ObjectID) (map[bson.ObjectID]*model.Class, error)
+	FindClassesMap(ctx context.Context, classIDs []bson.ObjectID) (map[bson.ObjectID]*model.Class, error)
 	FindSubjectsMap(ctx context.Context, subjectIDs []bson.ObjectID) (map[bson.ObjectID]*model.Subject, error)
 }
 
@@ -60,10 +60,10 @@ func (r *learningOutcomeRepositoryImpl) Create(ctx context.Context, lo *model.Le
 	return err
 }
 
-func (r *learningOutcomeRepositoryImpl) FindByID(ctx context.Context, schoolID, teacherID, id bson.ObjectID) (*model.LearningOutcome, error) {
+func (r *learningOutcomeRepositoryImpl) FindByID(ctx context.Context, teacherID, id bson.ObjectID) (*model.LearningOutcome, error) {
 	filter := bson.M{
 		"_id":      id,
-		"schoolId": schoolID,
+		
 	}
 	if !teacherID.IsZero() {
 		filter["teacherId"] = teacherID
@@ -79,9 +79,9 @@ func (r *learningOutcomeRepositoryImpl) FindByID(ctx context.Context, schoolID, 
 	return &lo, nil
 }
 
-func (r *learningOutcomeRepositoryImpl) FindList(ctx context.Context, schoolID, teacherID, academicYearID bson.ObjectID, semester int, subjectID *bson.ObjectID, classID *bson.ObjectID) ([]model.LearningOutcome, error) {
+func (r *learningOutcomeRepositoryImpl) FindList(ctx context.Context, teacherID, academicYearID bson.ObjectID, semester int, subjectID *bson.ObjectID, classID *bson.ObjectID) ([]model.LearningOutcome, error) {
 	filter := bson.M{
-		"schoolId": schoolID,
+		
 	}
 	if !teacherID.IsZero() {
 		filter["teacherId"] = teacherID
@@ -125,35 +125,35 @@ func (r *learningOutcomeRepositoryImpl) Update(ctx context.Context, lo *model.Le
 	return err
 }
 
-func (r *learningOutcomeRepositoryImpl) Delete(ctx context.Context, schoolID, teacherID, id bson.ObjectID) error {
+func (r *learningOutcomeRepositoryImpl) Delete(ctx context.Context, teacherID, id bson.ObjectID) error {
 	filter := bson.M{
 		"_id":       id,
-		"schoolId":  schoolID,
+		
 		"teacherId": teacherID,
 	}
 	_, err := r.collection.DeleteOne(ctx, filter)
 	return err
 }
 
-func (r *learningOutcomeRepositoryImpl) CountItemsByOutcomeID(ctx context.Context, schoolID, outcomeID bson.ObjectID) (int64, error) {
-	asgCount, err := r.assignments.CountDocuments(ctx, bson.M{"schoolId": schoolID, "learningOutcomeId": outcomeID})
+func (r *learningOutcomeRepositoryImpl) CountItemsByOutcomeID(ctx context.Context, outcomeID bson.ObjectID) (int64, error) {
+	asgCount, err := r.assignments.CountDocuments(ctx, bson.M{ "learningOutcomeId": outcomeID})
 	if err != nil {
 		return 0, err
 	}
-	prjCount, err := r.projects.CountDocuments(ctx, bson.M{"schoolId": schoolID, "learningOutcomeId": outcomeID})
+	prjCount, err := r.projects.CountDocuments(ctx, bson.M{ "learningOutcomeId": outcomeID})
 	if err != nil {
 		return 0, err
 	}
-	asmCount, err := r.assessments.CountDocuments(ctx, bson.M{"schoolId": schoolID, "learningOutcomeId": outcomeID})
+	asmCount, err := r.assessments.CountDocuments(ctx, bson.M{ "learningOutcomeId": outcomeID})
 	if err != nil {
 		return 0, err
 	}
 	return asgCount + prjCount + asmCount, nil
 }
 
-func (r *learningOutcomeRepositoryImpl) FindAssignmentByID(ctx context.Context, schoolID, teacherID, id bson.ObjectID) (*model.Assignment, error) {
+func (r *learningOutcomeRepositoryImpl) FindAssignmentByID(ctx context.Context, teacherID, id bson.ObjectID) (*model.Assignment, error) {
 	var asg model.Assignment
-	err := r.assignments.FindOne(ctx, bson.M{"_id": id, "schoolId": schoolID, "teacherId": teacherID}).Decode(&asg)
+	err := r.assignments.FindOne(ctx, bson.M{"_id": id,  "teacherId": teacherID}).Decode(&asg)
 	if err != nil {
 		if err == mongo.ErrNoDocuments {
 			return nil, nil
@@ -163,20 +163,20 @@ func (r *learningOutcomeRepositoryImpl) FindAssignmentByID(ctx context.Context, 
 	return &asg, nil
 }
 
-func (r *learningOutcomeRepositoryImpl) UpdateAssignmentOutcome(ctx context.Context, schoolID, teacherID, id bson.ObjectID, outcomeID *bson.ObjectID) error {
+func (r *learningOutcomeRepositoryImpl) UpdateAssignmentOutcome(ctx context.Context, teacherID, id bson.ObjectID, outcomeID *bson.ObjectID) error {
 	update := bson.M{
 		"$set": bson.M{
 			"learningOutcomeId": outcomeID,
 			"updatedAt":         time.Now().UTC(),
 		},
 	}
-	_, err := r.assignments.UpdateOne(ctx, bson.M{"_id": id, "schoolId": schoolID, "teacherId": teacherID}, update)
+	_, err := r.assignments.UpdateOne(ctx, bson.M{"_id": id,  "teacherId": teacherID}, update)
 	return err
 }
 
-func (r *learningOutcomeRepositoryImpl) FindProjectByID(ctx context.Context, schoolID, teacherID, id bson.ObjectID) (*model.Project, error) {
+func (r *learningOutcomeRepositoryImpl) FindProjectByID(ctx context.Context, teacherID, id bson.ObjectID) (*model.Project, error) {
 	var prj model.Project
-	err := r.projects.FindOne(ctx, bson.M{"_id": id, "schoolId": schoolID, "teacherId": teacherID}).Decode(&prj)
+	err := r.projects.FindOne(ctx, bson.M{"_id": id,  "teacherId": teacherID}).Decode(&prj)
 	if err != nil {
 		if err == mongo.ErrNoDocuments {
 			return nil, nil
@@ -186,20 +186,20 @@ func (r *learningOutcomeRepositoryImpl) FindProjectByID(ctx context.Context, sch
 	return &prj, nil
 }
 
-func (r *learningOutcomeRepositoryImpl) UpdateProjectOutcome(ctx context.Context, schoolID, teacherID, id bson.ObjectID, outcomeID *bson.ObjectID) error {
+func (r *learningOutcomeRepositoryImpl) UpdateProjectOutcome(ctx context.Context, teacherID, id bson.ObjectID, outcomeID *bson.ObjectID) error {
 	update := bson.M{
 		"$set": bson.M{
 			"learningOutcomeId": outcomeID,
 			"updatedAt":         time.Now().UTC(),
 		},
 	}
-	_, err := r.projects.UpdateOne(ctx, bson.M{"_id": id, "schoolId": schoolID, "teacherId": teacherID}, update)
+	_, err := r.projects.UpdateOne(ctx, bson.M{"_id": id,  "teacherId": teacherID}, update)
 	return err
 }
 
-func (r *learningOutcomeRepositoryImpl) FindAssessmentByID(ctx context.Context, schoolID, teacherID, id bson.ObjectID) (*model.Assessment, error) {
+func (r *learningOutcomeRepositoryImpl) FindAssessmentByID(ctx context.Context, teacherID, id bson.ObjectID) (*model.Assessment, error) {
 	var asm model.Assessment
-	err := r.assessments.FindOne(ctx, bson.M{"_id": id, "schoolId": schoolID, "teacherId": teacherID}).Decode(&asm)
+	err := r.assessments.FindOne(ctx, bson.M{"_id": id,  "teacherId": teacherID}).Decode(&asm)
 	if err != nil {
 		if err == mongo.ErrNoDocuments {
 			return nil, nil
@@ -209,23 +209,23 @@ func (r *learningOutcomeRepositoryImpl) FindAssessmentByID(ctx context.Context, 
 	return &asm, nil
 }
 
-func (r *learningOutcomeRepositoryImpl) UpdateAssessmentOutcome(ctx context.Context, schoolID, teacherID, id bson.ObjectID, outcomeID *bson.ObjectID) error {
+func (r *learningOutcomeRepositoryImpl) UpdateAssessmentOutcome(ctx context.Context, teacherID, id bson.ObjectID, outcomeID *bson.ObjectID) error {
 	update := bson.M{
 		"$set": bson.M{
 			"learningOutcomeId": outcomeID,
 			"updatedAt":         time.Now().UTC(),
 		},
 	}
-	_, err := r.assessments.UpdateOne(ctx, bson.M{"_id": id, "schoolId": schoolID, "teacherId": teacherID}, update)
+	_, err := r.assessments.UpdateOne(ctx, bson.M{"_id": id,  "teacherId": teacherID}, update)
 	return err
 }
 
-func (r *learningOutcomeRepositoryImpl) FindClassesMap(ctx context.Context, schoolID bson.ObjectID, classIDs []bson.ObjectID) (map[bson.ObjectID]*model.Class, error) {
+func (r *learningOutcomeRepositoryImpl) FindClassesMap(ctx context.Context, classIDs []bson.ObjectID) (map[bson.ObjectID]*model.Class, error) {
 	res := make(map[bson.ObjectID]*model.Class)
 	if len(classIDs) == 0 {
 		return res, nil
 	}
-	cursor, err := r.classes.Find(ctx, bson.M{"_id": bson.M{"$in": classIDs}, "schoolId": schoolID})
+	cursor, err := r.classes.Find(ctx, bson.M{"_id": bson.M{"$in": classIDs}})
 	if err != nil {
 		return res, err
 	}

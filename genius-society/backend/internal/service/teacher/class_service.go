@@ -52,7 +52,7 @@ func (s *classServiceImpl) GetClasses(ctx context.Context, scope *middleware.Tea
 	}
 
 	// 2. Fetch classes
-	classes, err := s.repo.FindClassesByIDs(ctx, scope.SchoolID, allClassIDs)
+	classes, err := s.repo.FindClassesByIDs(ctx, allClassIDs)
 	if err != nil {
 		return nil, err
 	}
@@ -75,7 +75,7 @@ func (s *classServiceImpl) GetClasses(ctx context.Context, scope *middleware.Tea
 	// 4. Build response DTOs
 	result := make([]teacherdto.TeacherClassDTO, 0, len(classes))
 	for _, cl := range classes {
-		studentCount, _ := s.repo.CountStudentsByClassID(ctx, scope.SchoolID, cl.ID)
+		studentCount, _ := s.repo.CountStudentsByClassID(ctx, cl.ID)
 
 		// Find subjects taught by this teacher in this specific class
 		var subjects []teacherdto.SubjectBrief
@@ -123,7 +123,7 @@ func (s *classServiceImpl) GetClassDetail(ctx context.Context, scope *middleware
 		return nil, handler.ErrNotFound
 	}
 
-	cl, err := s.repo.FindClassByID(ctx, scope.SchoolID, classID)
+	cl, err := s.repo.FindClassByID(ctx, classID)
 	if err != nil {
 		return nil, err
 	}
@@ -131,7 +131,7 @@ func (s *classServiceImpl) GetClassDetail(ctx context.Context, scope *middleware
 		return nil, handler.ErrNotFound
 	}
 
-	studentCount, _ := s.repo.CountStudentsByClassID(ctx, scope.SchoolID, cl.ID)
+	studentCount, _ := s.repo.CountStudentsByClassID(ctx, cl.ID)
 
 	var classSubjectIDs []bson.ObjectID
 	for _, p := range scope.TeachingPairs {
@@ -187,7 +187,7 @@ func (s *classServiceImpl) GetClassStudents(ctx context.Context, scope *middlewa
 		return nil, nil, handler.ErrNotFound
 	}
 
-	cl, err := s.repo.FindClassByID(ctx, scope.SchoolID, classID)
+	cl, err := s.repo.FindClassByID(ctx, classID)
 	if err != nil {
 		return nil, nil, err
 	}
@@ -205,7 +205,7 @@ func (s *classServiceImpl) GetClassStudents(ctx context.Context, scope *middlewa
 		page = 1
 	}
 
-	students, total, err := s.repo.FindStudentsByClassID(ctx, scope.SchoolID, classID, search, page, limit)
+	students, total, err := s.repo.FindStudentsByClassID(ctx, classID, search, page, limit)
 	if err != nil {
 		return nil, nil, err
 	}

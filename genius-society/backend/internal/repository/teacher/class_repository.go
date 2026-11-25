@@ -12,10 +12,10 @@ import (
 
 // ClassRepository defines read operations needed for teacher class views.
 type ClassRepository interface {
-	FindClassesByIDs(ctx context.Context, schoolID bson.ObjectID, classIDs []bson.ObjectID) ([]*model.Class, error)
-	FindClassByID(ctx context.Context, schoolID, classID bson.ObjectID) (*model.Class, error)
-	CountStudentsByClassID(ctx context.Context, schoolID, classID bson.ObjectID) (int64, error)
-	FindStudentsByClassID(ctx context.Context, schoolID, classID bson.ObjectID, search string, page, limit int64) ([]*model.Student, int64, error)
+	FindClassesByIDs(ctx context.Context, classIDs []bson.ObjectID) ([]*model.Class, error)
+	FindClassByID(ctx context.Context, classID bson.ObjectID) (*model.Class, error)
+	CountStudentsByClassID(ctx context.Context, classID bson.ObjectID) (int64, error)
+	FindStudentsByClassID(ctx context.Context, classID bson.ObjectID, search string, page, limit int64) ([]*model.Student, int64, error)
 	FindUsersByIDs(ctx context.Context, userIDs []bson.ObjectID) (map[bson.ObjectID]*model.User, error)
 	FindSubjectsByIDs(ctx context.Context, subjectIDs []bson.ObjectID) (map[bson.ObjectID]*model.Subject, error)
 }
@@ -37,14 +37,14 @@ func NewClassRepository(db *mongo.Database) ClassRepository {
 	}
 }
 
-func (r *classRepoImpl) FindClassesByIDs(ctx context.Context, schoolID bson.ObjectID, classIDs []bson.ObjectID) ([]*model.Class, error) {
+func (r *classRepoImpl) FindClassesByIDs(ctx context.Context, classIDs []bson.ObjectID) ([]*model.Class, error) {
 	if len(classIDs) == 0 {
 		return []*model.Class{}, nil
 	}
 
 	filter := bson.M{
 		"_id":      bson.M{"$in": classIDs},
-		"schoolId": schoolID,
+		
 		"status":   "active",
 	}
 
@@ -62,10 +62,10 @@ func (r *classRepoImpl) FindClassesByIDs(ctx context.Context, schoolID bson.Obje
 	return classes, nil
 }
 
-func (r *classRepoImpl) FindClassByID(ctx context.Context, schoolID, classID bson.ObjectID) (*model.Class, error) {
+func (r *classRepoImpl) FindClassByID(ctx context.Context, classID bson.ObjectID) (*model.Class, error) {
 	filter := bson.M{
 		"_id":      classID,
-		"schoolId": schoolID,
+		
 	}
 
 	var c model.Class
@@ -79,18 +79,18 @@ func (r *classRepoImpl) FindClassByID(ctx context.Context, schoolID, classID bso
 	return &c, nil
 }
 
-func (r *classRepoImpl) CountStudentsByClassID(ctx context.Context, schoolID, classID bson.ObjectID) (int64, error) {
+func (r *classRepoImpl) CountStudentsByClassID(ctx context.Context, classID bson.ObjectID) (int64, error) {
 	filter := bson.M{
 		"classId":  classID,
-		"schoolId": schoolID,
+		
 	}
 	return r.students.CountDocuments(ctx, filter)
 }
 
-func (r *classRepoImpl) FindStudentsByClassID(ctx context.Context, schoolID, classID bson.ObjectID, search string, page, limit int64) ([]*model.Student, int64, error) {
+func (r *classRepoImpl) FindStudentsByClassID(ctx context.Context, classID bson.ObjectID, search string, page, limit int64) ([]*model.Student, int64, error) {
 	filter := bson.M{
 		"classId":  classID,
-		"schoolId": schoolID,
+		
 	}
 
 	if search != "" {
@@ -99,7 +99,7 @@ func (r *classRepoImpl) FindStudentsByClassID(ctx context.Context, schoolID, cla
 
 		// Search users by name to get userIDs
 		userCur, err := r.users.Find(ctx, bson.M{
-			"schoolId": schoolID,
+			
 			"role":     model.RoleStudent,
 			"name":     nameRegex,
 		}, options.Find().SetProjection(bson.M{"_id": 1}))

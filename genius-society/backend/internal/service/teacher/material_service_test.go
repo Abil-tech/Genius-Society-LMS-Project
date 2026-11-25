@@ -16,25 +16,25 @@ import (
 )
 
 type mockMaterialRepo struct {
-	findMaterialsFunc func(ctx context.Context, schoolID, teacherID bson.ObjectID, classID, subjectID *bson.ObjectID, search string, page, limit int64) ([]*model.Material, int64, error)
-	findByIDFunc      func(ctx context.Context, schoolID, teacherID, id bson.ObjectID) (*model.Material, error)
+	findMaterialsFunc func(ctx context.Context, teacherID bson.ObjectID, classID, subjectID *bson.ObjectID, search string, page, limit int64) ([]*model.Material, int64, error)
+	findByIDFunc      func(ctx context.Context, teacherID, id bson.ObjectID) (*model.Material, error)
 	createFunc        func(ctx context.Context, m *model.Material) error
 	updateFunc        func(ctx context.Context, m *model.Material) error
-	deleteFunc        func(ctx context.Context, schoolID, teacherID, id bson.ObjectID) error
-	classesMapFunc    func(ctx context.Context, schoolID bson.ObjectID, classIDs []bson.ObjectID) (map[bson.ObjectID]*model.Class, error)
+	deleteFunc        func(ctx context.Context, teacherID, id bson.ObjectID) error
+	classesMapFunc    func(ctx context.Context, classIDs []bson.ObjectID) (map[bson.ObjectID]*model.Class, error)
 	subjectsMapFunc   func(ctx context.Context, subjectIDs []bson.ObjectID) (map[bson.ObjectID]*model.Subject, error)
 }
 
-func (m *mockMaterialRepo) FindMaterials(ctx context.Context, schoolID, teacherID bson.ObjectID, classID, subjectID *bson.ObjectID, search string, page, limit int64) ([]*model.Material, int64, error) {
+func (m *mockMaterialRepo) FindMaterials(ctx context.Context, teacherID bson.ObjectID, classID, subjectID *bson.ObjectID, search string, page, limit int64) ([]*model.Material, int64, error) {
 	if m.findMaterialsFunc != nil {
-		return m.findMaterialsFunc(ctx, schoolID, teacherID, classID, subjectID, search, page, limit)
+		return m.findMaterialsFunc(ctx, teacherID, classID, subjectID, search, page, limit)
 	}
 	return nil, 0, nil
 }
 
-func (m *mockMaterialRepo) FindMaterialByID(ctx context.Context, schoolID, teacherID, id bson.ObjectID) (*model.Material, error) {
+func (m *mockMaterialRepo) FindMaterialByID(ctx context.Context, teacherID, id bson.ObjectID) (*model.Material, error) {
 	if m.findByIDFunc != nil {
-		return m.findByIDFunc(ctx, schoolID, teacherID, id)
+		return m.findByIDFunc(ctx, teacherID, id)
 	}
 	return nil, nil
 }
@@ -53,16 +53,16 @@ func (m *mockMaterialRepo) UpdateMaterial(ctx context.Context, mat *model.Materi
 	return nil
 }
 
-func (m *mockMaterialRepo) DeleteMaterial(ctx context.Context, schoolID, teacherID, id bson.ObjectID) error {
+func (m *mockMaterialRepo) DeleteMaterial(ctx context.Context, teacherID, id bson.ObjectID) error {
 	if m.deleteFunc != nil {
-		return m.deleteFunc(ctx, schoolID, teacherID, id)
+		return m.deleteFunc(ctx, teacherID, id)
 	}
 	return nil
 }
 
-func (m *mockMaterialRepo) FindClassesMap(ctx context.Context, schoolID bson.ObjectID, classIDs []bson.ObjectID) (map[bson.ObjectID]*model.Class, error) {
+func (m *mockMaterialRepo) FindClassesMap(ctx context.Context, classIDs []bson.ObjectID) (map[bson.ObjectID]*model.Class, error) {
 	if m.classesMapFunc != nil {
-		return m.classesMapFunc(ctx, schoolID, classIDs)
+		return m.classesMapFunc(ctx, classIDs)
 	}
 	return make(map[bson.ObjectID]*model.Class), nil
 }
@@ -102,7 +102,7 @@ func (m *mockFileStorage) Delete(ctx context.Context, key string) error {
 }
 
 type mockNotifService struct {
-	notifyClassesFunc func(ctx context.Context, schoolID bson.ObjectID, classIDs []bson.ObjectID, notifType, title, body, refType string, refID bson.ObjectID) error
+	notifyClassesFunc func(ctx context.Context, classIDs []bson.ObjectID, notifType, title, body, refType string, refID bson.ObjectID) error
 }
 
 func (m *mockNotifService) GetNotifications(ctx context.Context, userID bson.ObjectID, page, limit int64) ([]teacherdto.NotificationDTO, *teacherdto.NotificationMeta, error) {
@@ -117,22 +117,22 @@ func (m *mockNotifService) MarkAsRead(ctx context.Context, userID, notifID bson.
 func (m *mockNotifService) MarkAllAsRead(ctx context.Context, userID bson.ObjectID) error {
 	return nil
 }
-func (m *mockNotifService) NotifyClasses(ctx context.Context, schoolID bson.ObjectID, classIDs []bson.ObjectID, notifType, title, body, refType string, refID bson.ObjectID) error {
+func (m *mockNotifService) NotifyClasses(ctx context.Context, classIDs []bson.ObjectID, notifType, title, body, refType string, refID bson.ObjectID) error {
 	if m.notifyClassesFunc != nil {
-		return m.notifyClassesFunc(ctx, schoolID, classIDs, notifType, title, body, refType, refID)
+		return m.notifyClassesFunc(ctx, classIDs, notifType, title, body, refType, refID)
 	}
 	return nil
 }
 
 func TestMaterialService_Create_ValidationAndScope(t *testing.T) {
-	schoolID := bson.NewObjectID()
+
 	teacherID := bson.NewObjectID()
 	classAllowed := bson.NewObjectID()
 	classForbidden := bson.NewObjectID()
 	subjectID := bson.NewObjectID()
 
 	scope := &middleware.TeacherScope{
-		SchoolID:  schoolID,
+
 		TeacherID: teacherID,
 		TeachingPairs: []repository.ClassSubjectPair{
 			{ClassID: classAllowed, SubjectID: subjectID},
@@ -177,13 +177,13 @@ func TestMaterialService_Create_ValidationAndScope(t *testing.T) {
 }
 
 func TestMaterialService_CreateAndPublish_TriggersNotification(t *testing.T) {
-	schoolID := bson.NewObjectID()
+
 	teacherID := bson.NewObjectID()
 	classID := bson.NewObjectID()
 	subjectID := bson.NewObjectID()
 
 	scope := &middleware.TeacherScope{
-		SchoolID:  schoolID,
+
 		TeacherID: teacherID,
 		TeachingPairs: []repository.ClassSubjectPair{
 			{ClassID: classID, SubjectID: subjectID},
@@ -196,7 +196,7 @@ func TestMaterialService_CreateAndPublish_TriggersNotification(t *testing.T) {
 			createdMat = m
 			return nil
 		},
-		findByIDFunc: func(ctx context.Context, sID, tID, id bson.ObjectID) (*model.Material, error) {
+		findByIDFunc: func(ctx context.Context, tID, id bson.ObjectID) (*model.Material, error) {
 			return createdMat, nil
 		},
 		subjectsMapFunc: func(ctx context.Context, sIDs []bson.ObjectID) (map[bson.ObjectID]*model.Subject, error) {
@@ -204,7 +204,7 @@ func TestMaterialService_CreateAndPublish_TriggersNotification(t *testing.T) {
 				subjectID: {ID: subjectID, Name: "Matematika"},
 			}, nil
 		},
-		classesMapFunc: func(ctx context.Context, sID bson.ObjectID, cIDs []bson.ObjectID) (map[bson.ObjectID]*model.Class, error) {
+		classesMapFunc: func(ctx context.Context, cIDs []bson.ObjectID) (map[bson.ObjectID]*model.Class, error) {
 			return map[bson.ObjectID]*model.Class{
 				classID: {ID: classID, Name: "X-IPA-1"},
 			}, nil
@@ -213,7 +213,7 @@ func TestMaterialService_CreateAndPublish_TriggersNotification(t *testing.T) {
 
 	var notifSent bool
 	notif := &mockNotifService{
-		notifyClassesFunc: func(ctx context.Context, sID bson.ObjectID, cIDs []bson.ObjectID, notifType, title, body, refType string, refID bson.ObjectID) error {
+		notifyClassesFunc: func(ctx context.Context, cIDs []bson.ObjectID, notifType, title, body, refType string, refID bson.ObjectID) error {
 			notifSent = true
 			if notifType != "new_material" {
 				t.Errorf("expected notifType new_material, got %s", notifType)
@@ -242,26 +242,26 @@ func TestMaterialService_CreateAndPublish_TriggersNotification(t *testing.T) {
 }
 
 func TestMaterialService_Delete_OrderDBFirstStorageAfter(t *testing.T) {
-	schoolID := bson.NewObjectID()
+
 	teacherID := bson.NewObjectID()
 	matID := bson.NewObjectID()
 
 	scope := &middleware.TeacherScope{
-		SchoolID:  schoolID,
+
 		TeacherID: teacherID,
 	}
 
 	var callOrder []string
 	repo := &mockMaterialRepo{
-		findByIDFunc: func(ctx context.Context, sID, tID, id bson.ObjectID) (*model.Material, error) {
+		findByIDFunc: func(ctx context.Context, tID, id bson.ObjectID) (*model.Material, error) {
 			return &model.Material{
-				ID:        matID,
-				SchoolID:  schoolID,
+				ID: matID,
+
 				TeacherID: teacherID,
 				File:      &model.FileRef{Key: "materials/file1.pdf"},
 			}, nil
 		},
-		deleteFunc: func(ctx context.Context, sID, tID, id bson.ObjectID) error {
+		deleteFunc: func(ctx context.Context, tID, id bson.ObjectID) error {
 			callOrder = append(callOrder, "db_delete")
 			return nil
 		},

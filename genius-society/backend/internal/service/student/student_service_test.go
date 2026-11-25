@@ -12,8 +12,8 @@ import (
 
 // MockStudentRepo implements studentrepo.StudentRepository for testing.
 type mockStudentRepo struct {
-	findGradesByStudentFn func(ctx context.Context, schoolID, studentID, academicYearID bson.ObjectID) ([]model.Grade, error)
-	findClassStudentsFn   func(ctx context.Context, schoolID, classID bson.ObjectID) ([]model.Student, error)
+	findGradesByStudentFn func(ctx context.Context, studentID, academicYearID bson.ObjectID) ([]model.Grade, error)
+	findClassStudentsFn   func(ctx context.Context, classID bson.ObjectID) ([]model.Student, error)
 	findSubjectsMapFn     func(ctx context.Context, subjectIDs []bson.ObjectID) (map[bson.ObjectID]*model.Subject, error)
 	findUsersMapFn        func(ctx context.Context, userIDs []bson.ObjectID) (map[bson.ObjectID]*model.User, error)
 }
@@ -24,31 +24,31 @@ func (m *mockStudentRepo) FindUserByID(ctx context.Context, id bson.ObjectID) (*
 func (m *mockStudentRepo) FindStudentByUserID(ctx context.Context, userID bson.ObjectID) (*model.Student, error) {
 	return nil, nil
 }
-func (m *mockStudentRepo) FindActiveAcademicYear(ctx context.Context, schoolID bson.ObjectID) (*model.AcademicYear, error) {
+func (m *mockStudentRepo) FindActiveAcademicYear(ctx context.Context) (*model.AcademicYear, error) {
 	return nil, nil
 }
-func (m *mockStudentRepo) FindActiveEnrollment(ctx context.Context, schoolID, studentID, academicYearID bson.ObjectID) (*model.StudentEnrollment, error) {
+func (m *mockStudentRepo) FindActiveEnrollment(ctx context.Context, studentID, academicYearID bson.ObjectID) (*model.StudentEnrollment, error) {
 	return nil, nil
 }
 func (m *mockStudentRepo) FindClassByID(ctx context.Context, classID bson.ObjectID) (*model.Class, error) {
 	return &model.Class{ID: classID, Name: "7-A"}, nil
 }
-func (m *mockStudentRepo) FindMaterialsByClass(ctx context.Context, schoolID, classID bson.ObjectID, subjectID *bson.ObjectID, now time.Time) ([]model.Material, error) {
+func (m *mockStudentRepo) FindMaterialsByClass(ctx context.Context, classID bson.ObjectID, subjectID *bson.ObjectID, now time.Time) ([]model.Material, error) {
 	return nil, nil
 }
-func (m *mockStudentRepo) FindMaterialByID(ctx context.Context, schoolID, materialID bson.ObjectID) (*model.Material, error) {
+func (m *mockStudentRepo) FindMaterialByID(ctx context.Context, materialID bson.ObjectID) (*model.Material, error) {
 	return nil, nil
 }
-func (m *mockStudentRepo) FindAssignmentsByClass(ctx context.Context, schoolID, classID bson.ObjectID, subjectID *bson.ObjectID) ([]model.Assignment, error) {
+func (m *mockStudentRepo) FindAssignmentsByClass(ctx context.Context, classID bson.ObjectID, subjectID *bson.ObjectID) ([]model.Assignment, error) {
 	return nil, nil
 }
-func (m *mockStudentRepo) FindAssignmentByID(ctx context.Context, schoolID, assignmentID bson.ObjectID) (*model.Assignment, error) {
+func (m *mockStudentRepo) FindAssignmentByID(ctx context.Context, assignmentID bson.ObjectID) (*model.Assignment, error) {
 	return nil, nil
 }
-func (m *mockStudentRepo) FindAssignmentSubmissions(ctx context.Context, schoolID, assignmentID, studentID bson.ObjectID) ([]model.AssignmentSubmission, error) {
+func (m *mockStudentRepo) FindAssignmentSubmissions(ctx context.Context, assignmentID, studentID bson.ObjectID) ([]model.AssignmentSubmission, error) {
 	return nil, nil
 }
-func (m *mockStudentRepo) FindLatestAssignmentSubmission(ctx context.Context, schoolID, assignmentID, studentID bson.ObjectID) (*model.AssignmentSubmission, error) {
+func (m *mockStudentRepo) FindLatestAssignmentSubmission(ctx context.Context, assignmentID, studentID bson.ObjectID) (*model.AssignmentSubmission, error) {
 	return nil, nil
 }
 func (m *mockStudentRepo) InsertAssignmentSubmission(ctx context.Context, sub *model.AssignmentSubmission) error {
@@ -57,16 +57,16 @@ func (m *mockStudentRepo) InsertAssignmentSubmission(ctx context.Context, sub *m
 func (m *mockStudentRepo) UpdateAssignmentSubmission(ctx context.Context, sub *model.AssignmentSubmission) error {
 	return nil
 }
-func (m *mockStudentRepo) FindProjectsByClass(ctx context.Context, schoolID, classID bson.ObjectID, subjectID *bson.ObjectID) ([]model.Project, error) {
+func (m *mockStudentRepo) FindProjectsByClass(ctx context.Context, classID bson.ObjectID, subjectID *bson.ObjectID) ([]model.Project, error) {
 	return nil, nil
 }
-func (m *mockStudentRepo) FindProjectByID(ctx context.Context, schoolID, projectID bson.ObjectID) (*model.Project, error) {
+func (m *mockStudentRepo) FindProjectByID(ctx context.Context, projectID bson.ObjectID) (*model.Project, error) {
 	return nil, nil
 }
-func (m *mockStudentRepo) FindProjectSubmissions(ctx context.Context, schoolID, projectID, studentID bson.ObjectID) ([]model.ProjectSubmission, error) {
+func (m *mockStudentRepo) FindProjectSubmissions(ctx context.Context, projectID, studentID bson.ObjectID) ([]model.ProjectSubmission, error) {
 	return nil, nil
 }
-func (m *mockStudentRepo) FindLatestProjectSubmission(ctx context.Context, schoolID, projectID, studentID bson.ObjectID) (*model.ProjectSubmission, error) {
+func (m *mockStudentRepo) FindLatestProjectSubmission(ctx context.Context, projectID, studentID bson.ObjectID) (*model.ProjectSubmission, error) {
 	return nil, nil
 }
 func (m *mockStudentRepo) InsertProjectSubmission(ctx context.Context, sub *model.ProjectSubmission) error {
@@ -75,16 +75,16 @@ func (m *mockStudentRepo) InsertProjectSubmission(ctx context.Context, sub *mode
 func (m *mockStudentRepo) UpdateProjectSubmission(ctx context.Context, sub *model.ProjectSubmission) error {
 	return nil
 }
-func (m *mockStudentRepo) FindAssessmentsByClass(ctx context.Context, schoolID, classID bson.ObjectID, subjectID *bson.ObjectID) ([]model.Assessment, error) {
+func (m *mockStudentRepo) FindAssessmentsByClass(ctx context.Context, classID bson.ObjectID, subjectID *bson.ObjectID) ([]model.Assessment, error) {
 	return nil, nil
 }
-func (m *mockStudentRepo) FindAssessmentByID(ctx context.Context, schoolID, assessmentID bson.ObjectID) (*model.Assessment, error) {
+func (m *mockStudentRepo) FindAssessmentByID(ctx context.Context, assessmentID bson.ObjectID) (*model.Assessment, error) {
 	return nil, nil
 }
 func (m *mockStudentRepo) FindQuestionsByAssessmentID(ctx context.Context, assessmentID bson.ObjectID) ([]model.AssessmentQuestion, error) {
 	return nil, nil
 }
-func (m *mockStudentRepo) FindAttemptByStudent(ctx context.Context, schoolID, assessmentID, studentID bson.ObjectID) (*model.AssessmentAttempt, error) {
+func (m *mockStudentRepo) FindAttemptByStudent(ctx context.Context, assessmentID, studentID bson.ObjectID) (*model.AssessmentAttempt, error) {
 	return nil, nil
 }
 func (m *mockStudentRepo) InsertAttempt(ctx context.Context, attempt *model.AssessmentAttempt) error {
@@ -99,26 +99,26 @@ func (m *mockStudentRepo) FindAnswersByAttemptID(ctx context.Context, attemptID 
 func (m *mockStudentRepo) SaveAnswer(ctx context.Context, answer *model.AssessmentAnswer) error {
 	return nil
 }
-func (m *mockStudentRepo) FindGradesByStudent(ctx context.Context, schoolID, studentID, academicYearID bson.ObjectID) ([]model.Grade, error) {
+func (m *mockStudentRepo) FindGradesByStudent(ctx context.Context, studentID, academicYearID bson.ObjectID) ([]model.Grade, error) {
 	if m.findGradesByStudentFn != nil {
-		return m.findGradesByStudentFn(ctx, schoolID, studentID, academicYearID)
+		return m.findGradesByStudentFn(ctx, studentID, academicYearID)
 	}
 	return nil, nil
 }
-func (m *mockStudentRepo) FindGradingConfig(ctx context.Context, schoolID, academicYearID bson.ObjectID, subjectID *bson.ObjectID) (*model.GradingConfig, error) {
+func (m *mockStudentRepo) FindGradingConfig(ctx context.Context, academicYearID bson.ObjectID, subjectID *bson.ObjectID) (*model.GradingConfig, error) {
 	return &model.GradingConfig{
 		DailyWeight: 60,
 		UTSWeight:   20,
 		UASWeight:   20,
 	}, nil
 }
-func (m *mockStudentRepo) FindClassStudents(ctx context.Context, schoolID, classID bson.ObjectID) ([]model.Student, error) {
+func (m *mockStudentRepo) FindClassStudents(ctx context.Context, classID bson.ObjectID) ([]model.Student, error) {
 	if m.findClassStudentsFn != nil {
-		return m.findClassStudentsFn(ctx, schoolID, classID)
+		return m.findClassStudentsFn(ctx, classID)
 	}
 	return nil, nil
 }
-func (m *mockStudentRepo) FindSchedulesByClass(ctx context.Context, schoolID, classID, academicYearID bson.ObjectID) ([]model.Schedule, error) {
+func (m *mockStudentRepo) FindSchedulesByClass(ctx context.Context, classID, academicYearID bson.ObjectID) ([]model.Schedule, error) {
 	return nil, nil
 }
 func (m *mockStudentRepo) FindSubjectsMap(ctx context.Context, subjectIDs []bson.ObjectID) (map[bson.ObjectID]*model.Subject, error) {
@@ -142,14 +142,13 @@ func (m *mockStudentRepo) FindUsersMap(ctx context.Context, userIDs []bson.Objec
 }
 
 func TestStudentService_GetGradesFormula(t *testing.T) {
-	schoolID := bson.NewObjectID()
+
 	studentID := bson.NewObjectID()
 	classID := bson.NewObjectID()
 	ayID := bson.NewObjectID()
 	subjectID := bson.NewObjectID()
 
 	scope := &middleware.StudentScope{
-		SchoolID:       schoolID,
 		StudentID:      studentID,
 		ClassID:        classID,
 		AcademicYearID: ayID,
@@ -157,7 +156,7 @@ func TestStudentService_GetGradesFormula(t *testing.T) {
 	}
 
 	repo := &mockStudentRepo{
-		findGradesByStudentFn: func(ctx context.Context, sID, stID, aID bson.ObjectID) ([]model.Grade, error) {
+		findGradesByStudentFn: func(ctx context.Context, stID, aID bson.ObjectID) ([]model.Grade, error) {
 			return []model.Grade{
 				{Type: model.GradeAssignment, Score: 80, SubjectID: subjectID},
 				{Type: model.GradeAssessment, Score: 90, SubjectID: subjectID}, // average daily = 85
@@ -189,27 +188,26 @@ func TestStudentService_GetGradesFormula(t *testing.T) {
 }
 
 func TestStudentService_GetRanking(t *testing.T) {
-	schoolID := bson.NewObjectID()
+
 	studentID1 := bson.NewObjectID()
 	studentID2 := bson.NewObjectID()
 	classID := bson.NewObjectID()
 	ayID := bson.NewObjectID()
 
 	scope := &middleware.StudentScope{
-		SchoolID:       schoolID,
 		StudentID:      studentID1,
 		ClassID:        classID,
 		AcademicYearID: ayID,
 	}
 
 	repo := &mockStudentRepo{
-		findClassStudentsFn: func(ctx context.Context, sID, cID bson.ObjectID) ([]model.Student, error) {
+		findClassStudentsFn: func(ctx context.Context, cID bson.ObjectID) ([]model.Student, error) {
 			return []model.Student{
 				{ID: studentID1, NIS: "1001"},
 				{ID: studentID2, NIS: "1002"},
 			}, nil
 		},
-		findGradesByStudentFn: func(ctx context.Context, sID, stID, aID bson.ObjectID) ([]model.Grade, error) {
+		findGradesByStudentFn: func(ctx context.Context, stID, aID bson.ObjectID) ([]model.Grade, error) {
 			if stID == studentID1 {
 				return []model.Grade{{Score: 85}}, nil
 			}

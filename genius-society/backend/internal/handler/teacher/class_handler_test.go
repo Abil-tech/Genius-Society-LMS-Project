@@ -71,7 +71,7 @@ func setupTestRouter(svc teachersvc.ClassService, scope *middleware.TeacherScope
 }
 
 func TestHandler_ListClasses(t *testing.T) {
-	scope := &middleware.TeacherScope{SchoolID: bson.NewObjectID()}
+	scope := &middleware.TeacherScope{}
 	mockSvc := &mockClassService{
 		getClassesFunc: func(ctx context.Context, sc *middleware.TeacherScope) ([]teacherdto.TeacherClassDTO, error) {
 			return []teacherdto.TeacherClassDTO{
@@ -100,7 +100,7 @@ func TestHandler_ListClasses(t *testing.T) {
 }
 
 func TestHandler_GetClassDetail_InvalidID(t *testing.T) {
-	scope := &middleware.TeacherScope{SchoolID: bson.NewObjectID()}
+	scope := &middleware.TeacherScope{}
 	mockSvc := &mockClassService{}
 	r := setupTestRouter(mockSvc, scope)
 
@@ -120,7 +120,7 @@ func TestHandler_GetClassDetail_InvalidID(t *testing.T) {
 }
 
 func TestHandler_GetClassDetail_NotFound(t *testing.T) {
-	scope := &middleware.TeacherScope{SchoolID: bson.NewObjectID()}
+	scope := &middleware.TeacherScope{}
 	mockSvc := &mockClassService{
 		getClassDetailFunc: func(ctx context.Context, sc *middleware.TeacherScope, cID bson.ObjectID) (*teacherdto.TeacherClassDTO, error) {
 			return nil, handler.ErrNotFound
@@ -139,7 +139,7 @@ func TestHandler_GetClassDetail_NotFound(t *testing.T) {
 }
 
 func TestHandler_ListClassStudents_Success(t *testing.T) {
-	scope := &middleware.TeacherScope{SchoolID: bson.NewObjectID()}
+	scope := &middleware.TeacherScope{}
 	classID := bson.NewObjectID()
 
 	mockSvc := &mockClassService{

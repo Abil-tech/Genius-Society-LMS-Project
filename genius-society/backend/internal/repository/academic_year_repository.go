@@ -43,11 +43,10 @@ func (r *AcademicYearRepository) Create(ctx context.Context, ay *model.AcademicY
 }
 
 // ---------- FIND ----------
-func (r *AcademicYearRepository) FindByID(ctx context.Context, schoolID, id bson.ObjectID) (*model.AcademicYear, error) {
+func (r *AcademicYearRepository) FindByID(ctx context.Context, id bson.ObjectID) (*model.AcademicYear, error) {
 	var ay model.AcademicYear
 	filter := bson.M{
-		"_id":      id,
-		"schoolId": schoolID,
+		"_id": id,
 	}
 	if err := r.coll.FindOne(ctx, filter).Decode(&ay); err != nil {
 		return nil, err
@@ -55,8 +54,8 @@ func (r *AcademicYearRepository) FindByID(ctx context.Context, schoolID, id bson
 	return &ay, nil
 }
 
-func (r *AcademicYearRepository) FindAllBySchool(ctx context.Context, schoolID bson.ObjectID) ([]*model.AcademicYear, error) {
-	filter := bson.M{"schoolId": schoolID}
+func (r *AcademicYearRepository) FindAll(ctx context.Context) ([]*model.AcademicYear, error) {
+	filter := bson.M{}
 	cur, err := r.coll.Find(ctx, filter, options.Find().SetSort(bson.D{{Key: "name", Value: 1}}))
 	if err != nil {
 		return nil, err
@@ -70,10 +69,9 @@ func (r *AcademicYearRepository) FindAllBySchool(ctx context.Context, schoolID b
 	return result, nil
 }
 
-func (r *AcademicYearRepository) FindActiveBySchool(ctx context.Context, schoolID bson.ObjectID) (*model.AcademicYear, error) {
+func (r *AcademicYearRepository) FindActive(ctx context.Context) (*model.AcademicYear, error) {
 	var ay model.AcademicYear
 	filter := bson.M{
-		"schoolId": schoolID,
 		"isActive": true,
 	}
 	if err := r.coll.FindOne(ctx, filter).Decode(&ay); err != nil {
@@ -82,11 +80,10 @@ func (r *AcademicYearRepository) FindActiveBySchool(ctx context.Context, schoolI
 	return &ay, nil
 }
 
-func (r *AcademicYearRepository) FindByName(ctx context.Context, schoolID bson.ObjectID, name string) (*model.AcademicYear, error) {
+func (r *AcademicYearRepository) FindByName(ctx context.Context, name string) (*model.AcademicYear, error) {
 	var ay model.AcademicYear
 	filter := bson.M{
-		"schoolId": schoolID,
-		"name":     name,
+		"name": name,
 	}
 	if err := r.coll.FindOne(ctx, filter).Decode(&ay); err != nil {
 		return nil, err
@@ -95,33 +92,31 @@ func (r *AcademicYearRepository) FindByName(ctx context.Context, schoolID bson.O
 }
 
 // ---------- UPDATE ----------
-func (r *AcademicYearRepository) Update(ctx context.Context, schoolID, id bson.ObjectID, update bson.M) error {
+func (r *AcademicYearRepository) Update(ctx context.Context, id bson.ObjectID, update bson.M) error {
 	update["updatedAt"] = time.Now()
 	filter := bson.M{
-		"_id":      id,
-		"schoolId": schoolID,
+		"_id": id,
 	}
 	_, err := r.coll.UpdateOne(ctx, filter, bson.M{"$set": update})
 	return err
 }
 
 // ---------- DELETE ----------
-func (r *AcademicYearRepository) Delete(ctx context.Context, schoolID, id bson.ObjectID) error {
+func (r *AcademicYearRepository) Delete(ctx context.Context, id bson.ObjectID) error {
 	// NOTE: higher‑level service should ensure the year is not referenced by any class.
 	filter := bson.M{
-		"_id":      id,
-		"schoolId": schoolID,
+		"_id": id,
 	}
 	_, err := r.coll.DeleteOne(ctx, filter)
 	return err
 }
 
 // ---------- ACTIVATE ----------
-func (r *AcademicYearRepository) Activate(ctx context.Context, schoolID, id bson.ObjectID) error {
-	// 1. Deactivate other active years for the school
+func (r *AcademicYearRepository) Activate(ctx context.Context, id bson.ObjectID) error {
+	// 1. Deactivate other active years
 	_, err := r.coll.UpdateMany(
 		ctx,
-		bson.M{"schoolId": schoolID, "isActive": true},
+		bson.M{"isActive": true},
 		bson.M{"$set": bson.M{"isActive": false, "status": "inactive", "updatedAt": time.Now()}},
 	)
 	if err != nil {
@@ -130,15 +125,15 @@ func (r *AcademicYearRepository) Activate(ctx context.Context, schoolID, id bson
 	// 2. Activate the selected year
 	_, err = r.coll.UpdateOne(
 		ctx,
-		bson.M{"_id": id, "schoolId": schoolID},
+		bson.M{"_id": id},
 		bson.M{"$set": bson.M{"isActive": true, "status": "active", "updatedAt": time.Now()}},
 	)
 	return err
 }
 
 // ---------- ARCHIVE ----------
-func (r *AcademicYearRepository) Archive(ctx context.Context, schoolID, id bson.ObjectID) error {
-	filter := bson.M{"_id": id, "schoolId": schoolID}
+func (r *AcademicYearRepository) Archive(ctx context.Context, id bson.ObjectID) error {
+	filter := bson.M{"_id": id}
 	update := bson.M{
 		"$set": bson.M{
 			"status":    "archived",

@@ -16,7 +16,7 @@ type NotificationRepository interface {
 	CountUnread(ctx context.Context, userID bson.ObjectID) (int64, error)
 	MarkRead(ctx context.Context, userID, notifID bson.ObjectID) error
 	MarkAllRead(ctx context.Context, userID bson.ObjectID) error
-	FindActiveStudentUserIDsByClassIDs(ctx context.Context, schoolID bson.ObjectID, classIDs []bson.ObjectID) ([]bson.ObjectID, error)
+	FindActiveStudentUserIDsByClassIDs(ctx context.Context, classIDs []bson.ObjectID) ([]bson.ObjectID, error)
 	InsertMany(ctx context.Context, notifs []*model.Notification) error
 }
 
@@ -108,14 +108,14 @@ func (r *notificationRepoImpl) MarkAllRead(ctx context.Context, userID bson.Obje
 	return err
 }
 
-func (r *notificationRepoImpl) FindActiveStudentUserIDsByClassIDs(ctx context.Context, schoolID bson.ObjectID, classIDs []bson.ObjectID) ([]bson.ObjectID, error) {
+func (r *notificationRepoImpl) FindActiveStudentUserIDsByClassIDs(ctx context.Context, classIDs []bson.ObjectID) ([]bson.ObjectID, error) {
 	if len(classIDs) == 0 {
 		return []bson.ObjectID{}, nil
 	}
 
 	filter := bson.M{
 		"classId":  bson.M{"$in": classIDs},
-		"schoolId": schoolID,
+		
 		"status":   "active",
 		"userId":   bson.M{"$exists": true, "$ne": bson.NilObjectID},
 	}

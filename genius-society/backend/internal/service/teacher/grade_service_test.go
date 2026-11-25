@@ -19,16 +19,16 @@ type mockGradeRepo struct {
 	config   *model.GradingConfig
 }
 
-func (m *mockGradeRepo) FindGradesByClassSubject(ctx context.Context, schoolID, classID, subjectID, academicYearID bson.ObjectID) ([]*model.Grade, error) {
+func (m *mockGradeRepo) FindGradesByClassSubject(ctx context.Context, classID, subjectID, academicYearID bson.ObjectID) ([]*model.Grade, error) {
 	return m.grades, nil
 }
-func (m *mockGradeRepo) FindStudentsByClassID(ctx context.Context, schoolID, classID bson.ObjectID) ([]*model.Student, error) {
+func (m *mockGradeRepo) FindStudentsByClassID(ctx context.Context, classID bson.ObjectID) ([]*model.Student, error) {
 	return m.students, nil
 }
 func (m *mockGradeRepo) FindUsersByIDs(ctx context.Context, userIDs []bson.ObjectID) (map[bson.ObjectID]*model.User, error) {
 	return m.users, nil
 }
-func (m *mockGradeRepo) FindGradingConfig(ctx context.Context, schoolID, academicYearID, subjectID bson.ObjectID) (*model.GradingConfig, error) {
+func (m *mockGradeRepo) FindGradingConfig(ctx context.Context, academicYearID, subjectID bson.ObjectID) (*model.GradingConfig, error) {
 	return m.config, nil
 }
 func (m *mockGradeRepo) UpsertExamGrade(ctx context.Context, grade *model.Grade) (*model.Grade, error) {
@@ -50,48 +50,47 @@ func (m *mockGradeRepo) FindClassByID(ctx context.Context, classID bson.ObjectID
 func (m *mockGradeRepo) FindSubjectByID(ctx context.Context, subjectID bson.ObjectID) (*model.Subject, error) {
 	return &model.Subject{ID: subjectID, Name: "Matematika"}, nil
 }
-func (m *mockGradeRepo) BulkUpsertSTS(ctx context.Context, schoolID, teacherID bson.ObjectID, grades []*model.Grade, audits []*model.AuditLog) error {
+func (m *mockGradeRepo) BulkUpsertSTS(ctx context.Context, teacherID bson.ObjectID, grades []*model.Grade, audits []*model.AuditLog) error {
 	return nil
 }
-func (m *mockGradeRepo) FindExistingExamGrade(ctx context.Context, schoolID, studentID, subjectID, academicYearID bson.ObjectID, semester int, gradeType model.GradeType) (*model.Grade, error) {
+func (m *mockGradeRepo) FindExistingExamGrade(ctx context.Context, studentID, subjectID, academicYearID bson.ObjectID, semester int, gradeType model.GradeType) (*model.Grade, error) {
 	return nil, nil
 }
-func (m *mockGradeRepo) FindAssignment(ctx context.Context, schoolID, teacherID, id bson.ObjectID) (*model.Assignment, error) {
+func (m *mockGradeRepo) FindAssignment(ctx context.Context, teacherID, id bson.ObjectID) (*model.Assignment, error) {
 	return nil, nil
 }
-func (m *mockGradeRepo) HasAssignmentSubmission(ctx context.Context, schoolID, assignmentID, studentID bson.ObjectID) (bool, error) {
+func (m *mockGradeRepo) HasAssignmentSubmission(ctx context.Context, assignmentID, studentID bson.ObjectID) (bool, error) {
 	return false, nil
 }
-func (m *mockGradeRepo) FindProject(ctx context.Context, schoolID, teacherID, id bson.ObjectID) (*model.Project, error) {
+func (m *mockGradeRepo) FindProject(ctx context.Context, teacherID, id bson.ObjectID) (*model.Project, error) {
 	return nil, nil
 }
-func (m *mockGradeRepo) HasProjectSubmission(ctx context.Context, schoolID, projectID, studentID bson.ObjectID) (bool, error) {
+func (m *mockGradeRepo) HasProjectSubmission(ctx context.Context, projectID, studentID bson.ObjectID) (bool, error) {
 	return false, nil
 }
-func (m *mockGradeRepo) FindAssessment(ctx context.Context, schoolID, teacherID, id bson.ObjectID) (*model.Assessment, error) {
+func (m *mockGradeRepo) FindAssessment(ctx context.Context, teacherID, id bson.ObjectID) (*model.Assessment, error) {
 	return nil, nil
 }
-func (m *mockGradeRepo) HasAssessmentAttempt(ctx context.Context, schoolID, assessmentID, studentID bson.ObjectID) (bool, error) {
+func (m *mockGradeRepo) HasAssessmentAttempt(ctx context.Context, assessmentID, studentID bson.ObjectID) (bool, error) {
 	return false, nil
 }
 func (m *mockGradeRepo) SetManualItemGrade(ctx context.Context, grade *model.Grade, audit *model.AuditLog) error {
 	return nil
 }
-func (m *mockGradeRepo) DeleteManualItemGrade(ctx context.Context, schoolID, sourceID, studentID bson.ObjectID, audit *model.AuditLog) error {
+func (m *mockGradeRepo) DeleteManualItemGrade(ctx context.Context, sourceID, studentID bson.ObjectID, audit *model.AuditLog) error {
 	return nil
 }
-func (m *mockGradeRepo) FindManualItemGrade(ctx context.Context, schoolID, sourceID, studentID bson.ObjectID) (*model.Grade, error) {
+func (m *mockGradeRepo) FindManualItemGrade(ctx context.Context, sourceID, studentID bson.ObjectID) (*model.Grade, error) {
 	return nil, nil
 }
-func (m *mockGradeRepo) FindLearningOutcomesForRecap(ctx context.Context, schoolID, academicYearID, subjectID, classID bson.ObjectID, semester int) ([]*model.LearningOutcome, error) {
+func (m *mockGradeRepo) FindLearningOutcomesForRecap(ctx context.Context, academicYearID, subjectID, classID bson.ObjectID, semester int) ([]*model.LearningOutcome, error) {
 	return nil, nil
 }
-func (m *mockGradeRepo) FindItemsForRecap(ctx context.Context, schoolID, academicYearID, subjectID, classID bson.ObjectID) ([]*model.Assignment, []*model.Project, []*model.Assessment, error) {
+func (m *mockGradeRepo) FindItemsForRecap(ctx context.Context, academicYearID, subjectID, classID bson.ObjectID) ([]*model.Assignment, []*model.Project, []*model.Assessment, error) {
 	return nil, nil, nil, nil
 }
 
 func TestGradeService_GetGrades(t *testing.T) {
-	schoolID := bson.NewObjectID()
 	classID := bson.NewObjectID()
 	subjectID := bson.NewObjectID()
 	teacherID := bson.NewObjectID()
@@ -116,7 +115,6 @@ func TestGradeService_GetGrades(t *testing.T) {
 
 	svc := NewGradeService(mockRepo)
 	scope := &middleware.TeacherScope{
-		SchoolID:       schoolID,
 		TeacherID:      teacherID,
 		AcademicYearID: ayID,
 		TeachingPairs: []repository.ClassSubjectPair{
@@ -145,7 +143,6 @@ func TestGradeService_GetGrades(t *testing.T) {
 }
 
 func TestGradeService_UpdateGrade(t *testing.T) {
-	schoolID := bson.NewObjectID()
 	classID := bson.NewObjectID()
 	subjectID := bson.NewObjectID()
 	teacherID := bson.NewObjectID()
@@ -161,7 +158,6 @@ func TestGradeService_UpdateGrade(t *testing.T) {
 
 	svc := NewGradeService(mockRepo)
 	scope := &middleware.TeacherScope{
-		SchoolID:       schoolID,
 		TeacherID:      teacherID,
 		AcademicYearID: ayID,
 		Semester:       1,

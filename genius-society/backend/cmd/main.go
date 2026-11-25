@@ -75,7 +75,7 @@ func main() {
 	_ = b2 // will be injected into future handlers
 
 	// Router
-	r := routes.Setup(cfg, authSvc, userSvc, adminDashboardSvc, studentManagementSvc, teacherManagementSvc, subjectManagementSvc, classManagementSvc, academicYearSvc, userRepo)
+	r := routes.Setup(cfg, authSvc, userSvc, adminDashboardSvc, studentManagementSvc, teacherManagementSvc, subjectManagementSvc, classManagementSvc, academicYearSvc)
 
 	addr := fmt.Sprintf(":%s", cfg.Port)
 	log.Printf("Server starting on %s (env: %s)", addr, cfg.AppEnv)

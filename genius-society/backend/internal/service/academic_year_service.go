@@ -53,8 +53,8 @@ func NewAcademicYearService(
 }
 
 // ---------- LIST ----------
-func (s *AcademicYearService) List(ctx context.Context, schoolID bson.ObjectID) ([]dto.AcademicYearResponse, error) {
-	years, err := s.ayRepo.FindAllBySchool(ctx, schoolID)
+func (s *AcademicYearService) List(ctx context.Context) ([]dto.AcademicYearResponse, error) {
+	years, err := s.ayRepo.FindAll(ctx)
 	if err != nil {
 		return nil, err
 	}
@@ -84,8 +84,8 @@ func (s *AcademicYearService) List(ctx context.Context, schoolID bson.ObjectID) 
 }
 
 // ---------- GET ----------
-func (s *AcademicYearService) GetOne(ctx context.Context, schoolID, id bson.ObjectID) (*dto.AcademicYearResponse, error) {
-	ay, err := s.ayRepo.FindByID(ctx, schoolID, id)
+func (s *AcademicYearService) GetOne(ctx context.Context, id bson.ObjectID) (*dto.AcademicYearResponse, error) {
+	ay, err := s.ayRepo.FindByID(ctx, id)
 	if err != nil {
 		return nil, err
 	}
@@ -111,16 +111,15 @@ func (s *AcademicYearService) GetOne(ctx context.Context, schoolID, id bson.Obje
 }
 
 // ---------- CREATE ----------
-func (s *AcademicYearService) Create(ctx context.Context, schoolID, userID bson.ObjectID, req dto.CreateAcademicYearDTO) (*dto.AcademicYearResponse, error) {
+func (s *AcademicYearService) Create(ctx context.Context, userID bson.ObjectID, req dto.CreateAcademicYearDTO) (*dto.AcademicYearResponse, error) {
 	// Duplicate-name guard
-	if existing, _ := s.ayRepo.FindByName(ctx, schoolID, req.Name); existing != nil {
+	if existing, _ := s.ayRepo.FindByName(ctx, req.Name); existing != nil {
 		return nil, errors.New("tahun ajaran dengan nama tersebut sudah ada")
 	}
 	if req.EndDate.Before(req.StartDate) {
 		return nil, errors.New("tanggal akhir harus setelah tanggal mulai")
 	}
 	ay := &model.AcademicYear{
-		SchoolID:  schoolID,
 		Name:      req.Name,
 		Semester:  req.Semester,
 		StartDate: req.StartDate,
@@ -132,7 +131,7 @@ func (s *AcademicYearService) Create(ctx context.Context, schoolID, userID bson.
 		return nil, err
 	}
 	if s.auditRepo != nil {
-		_ = s.auditRepo.Log(ctx, schoolID, userID, "academic_year.create", "academic_year", ay.ID.Hex(), bson.M{"name": ay.Name})
+		_ = s.auditRepo.Log(ctx, userID, "academic_year.create", "academic_year", ay.ID.Hex(), bson.M{"name": ay.Name})
 	}
 	return &dto.AcademicYearResponse{
 		ID:        ay.ID.Hex(),
@@ -148,8 +147,8 @@ func (s *AcademicYearService) Create(ctx context.Context, schoolID, userID bson.
 }
 
 // ---------- UPDATE ----------
-func (s *AcademicYearService) Update(ctx context.Context, schoolID, userID, id bson.ObjectID, req dto.UpdateAcademicYearDTO) (*dto.AcademicYearResponse, error) {
-	existing, err := s.ayRepo.FindByID(ctx, schoolID, id)
+func (s *AcademicYearService) Update(ctx context.Context, userID, id bson.ObjectID, req dto.UpdateAcademicYearDTO) (*dto.AcademicYearResponse, error) {
+	existing, err := s.ayRepo.FindByID(ctx, id)
 	if err != nil {
 		return nil, errors.New("tahun ajaran tidak ditemukan")
 	}
@@ -162,7 +161,7 @@ func (s *AcademicYearService) Update(ctx context.Context, schoolID, userID, id b
 		if *req.Name == "" {
 			return nil, errors.New("nama tidak boleh kosong")
 		}
-		if dup, _ := s.ayRepo.FindByName(ctx, schoolID, *req.Name); dup != nil && dup.ID != id {
+		if dup, _ := s.ayRepo.FindByName(ctx, *req.Name); dup != nil && dup.ID != id {
 			return nil, errors.New("nama tahun ajaran sudah dipakai")
 		}
 		update["name"] = *req.Name
@@ -187,54 +186,54 @@ func (s *AcademicYearService) Update(ctx context.Context, schoolID, userID, id b
 	if len(update) == 0 {
 		return nil, errors.New("tidak ada data yang diubah")
 	}
-	if err := s.ayRepo.Update(ctx, schoolID, id, update); err != nil {
+	if err := s.ayRepo.Update(ctx, id, update); err != nil {
 		return nil, err
 	}
 	if s.auditRepo != nil {
-		_ = s.auditRepo.Log(ctx, schoolID, userID, "academic_year.update", "academic_year", id.Hex(), update)
+		_ = s.auditRepo.Log(ctx, userID, "academic_year.update", "academic_year", id.Hex(), update)
 	}
-	return s.GetOne(ctx, schoolID, id)
+	return s.GetOne(ctx, id)
 }
 
 // ---------- ACTIVATE ----------
-func (s *AcademicYearService) Activate(ctx context.Context, schoolID, userID, id bson.ObjectID) error {
-	existing, err := s.ayRepo.FindByID(ctx, schoolID, id)
+func (s *AcademicYearService) Activate(ctx context.Context, userID, id bson.ObjectID) error {
+	existing, err := s.ayRepo.FindByID(ctx, id)
 	if err != nil {
 		return errors.New("tahun ajaran tidak ditemukan")
 	}
 	if existing.Status == "archived" {
 		return errors.New("tahun ajaran yang diarsipkan tidak dapat diaktifkan kembali secara langsung")
 	}
-	if err := s.ayRepo.Activate(ctx, schoolID, id); err != nil {
+	if err := s.ayRepo.Activate(ctx, id); err != nil {
 		return err
 	}
 	if s.auditRepo != nil {
-		_ = s.auditRepo.Log(ctx, schoolID, userID, "academic_year.activate", "academic_year", id.Hex(), bson.M{"name": existing.Name})
+		_ = s.auditRepo.Log(ctx, userID, "academic_year.activate", "academic_year", id.Hex(), bson.M{"name": existing.Name})
 	}
 	return nil
 }
 
 // ---------- ARCHIVE ----------
-func (s *AcademicYearService) Archive(ctx context.Context, schoolID, userID, id bson.ObjectID) error {
-	existing, err := s.ayRepo.FindByID(ctx, schoolID, id)
+func (s *AcademicYearService) Archive(ctx context.Context, userID, id bson.ObjectID) error {
+	existing, err := s.ayRepo.FindByID(ctx, id)
 	if err != nil {
 		return errors.New("tahun ajaran tidak ditemukan")
 	}
 	if existing.IsActive {
 		return errors.New("tidak dapat mengarsipkan tahun ajaran yang sedang aktif; aktifkan tahun ajaran lain terlebih dahulu")
 	}
-	if err := s.ayRepo.Archive(ctx, schoolID, id); err != nil {
+	if err := s.ayRepo.Archive(ctx, id); err != nil {
 		return err
 	}
 	if s.auditRepo != nil {
-		_ = s.auditRepo.Log(ctx, schoolID, userID, "academic_year.archive", "academic_year", id.Hex(), bson.M{"name": existing.Name})
+		_ = s.auditRepo.Log(ctx, userID, "academic_year.archive", "academic_year", id.Hex(), bson.M{"name": existing.Name})
 	}
 	return nil
 }
 
 // ---------- DELETE ----------
-func (s *AcademicYearService) Delete(ctx context.Context, schoolID, userID, id bson.ObjectID) error {
-	existing, err := s.ayRepo.FindByID(ctx, schoolID, id)
+func (s *AcademicYearService) Delete(ctx context.Context, userID, id bson.ObjectID) error {
+	existing, err := s.ayRepo.FindByID(ctx, id)
 	if err != nil {
 		return errors.New("tahun ajaran tidak ditemukan")
 	}
@@ -242,16 +241,16 @@ func (s *AcademicYearService) Delete(ctx context.Context, schoolID, userID, id b
 		return errors.New("tidak dapat menghapus tahun ajaran yang sedang aktif")
 	}
 	if s.classRepo != nil {
-		cnt, _ := s.classRepo.CountByFilter(ctx, bson.M{"schoolId": schoolID, "academicYearId": id})
+		cnt, _ := s.classRepo.CountByFilter(ctx, bson.M{"academicYearId": id})
 		if cnt > 0 {
 			return errors.New("tahun ajaran ini sudah memiliki kelas terdaftar; gunakan fitur arsip dan bukan hapus")
 		}
 	}
-	if err := s.ayRepo.Delete(ctx, schoolID, id); err != nil {
+	if err := s.ayRepo.Delete(ctx, id); err != nil {
 		return err
 	}
 	if s.auditRepo != nil {
-		_ = s.auditRepo.Log(ctx, schoolID, userID, "academic_year.delete", "academic_year", id.Hex(), bson.M{"name": existing.Name})
+		_ = s.auditRepo.Log(ctx, userID, "academic_year.delete", "academic_year", id.Hex(), bson.M{"name": existing.Name})
 	}
 	return nil
 }
@@ -261,15 +260,14 @@ func (s *AcademicYearService) Delete(ctx context.Context, schoolID, userID, id b
 // ============================================================================
 
 // GetPromotionCandidates loads all active students belonging to classes in sourceYearID
-func (s *AcademicYearService) GetPromotionCandidates(ctx context.Context, schoolID, sourceYearID bson.ObjectID) ([]dto.PromotionCandidateItem, error) {
-	_, err := s.ayRepo.FindByID(ctx, schoolID, sourceYearID)
+func (s *AcademicYearService) GetPromotionCandidates(ctx context.Context, sourceYearID bson.ObjectID) ([]dto.PromotionCandidateItem, error) {
+	_, err := s.ayRepo.FindByID(ctx, sourceYearID)
 	if err != nil {
 		return nil, errors.New("tahun ajaran asal tidak ditemukan")
 	}
 
 	// 1. Find classes for source academic year in this school
 	classes, _, err := s.classRepo.List(ctx, bson.M{
-		"schoolId":       schoolID,
 		"academicYearId": sourceYearID,
 		"status":         bson.M{"$ne": "archived"},
 	}, 1, 1000)
@@ -378,7 +376,7 @@ func (s *AcademicYearService) GetPromotionCandidates(ctx context.Context, school
 }
 
 // PreviewPromotion validates decisions and returns a preview summary
-func (s *AcademicYearService) PreviewPromotion(ctx context.Context, schoolID bson.ObjectID, req dto.PromotionPreviewRequest) (*dto.ProcessPreviewResponse, error) {
+func (s *AcademicYearService) PreviewPromotion(ctx context.Context, req dto.PromotionPreviewRequest) (*dto.ProcessPreviewResponse, error) {
 	sourceOID, err := bson.ObjectIDFromHex(req.SourceAcademicYearID)
 	if err != nil {
 		return nil, errors.New("id tahun ajaran asal tidak valid")
@@ -392,12 +390,12 @@ func (s *AcademicYearService) PreviewPromotion(ctx context.Context, schoolID bso
 	}
 
 	// Validate target academic year exists and belongs to school
-	_, err = s.ayRepo.FindByID(ctx, schoolID, targetOID)
+	_, err = s.ayRepo.FindByID(ctx, targetOID)
 	if err != nil {
 		return nil, errors.New("tahun ajaran tujuan tidak ditemukan dalam sekolah ini")
 	}
 
-	candidates, err := s.GetPromotionCandidates(ctx, schoolID, sourceOID)
+	candidates, err := s.GetPromotionCandidates(ctx, sourceOID)
 	if err != nil {
 		return nil, err
 	}
@@ -465,13 +463,13 @@ func (s *AcademicYearService) PreviewPromotion(ctx context.Context, schoolID bso
 }
 
 // ExecutePromotion executes the batch promotion with idempotency and audit logs
-func (s *AcademicYearService) ExecutePromotion(ctx context.Context, schoolID, userID bson.ObjectID, req dto.PromotionExecutionRequest) (*dto.ProcessExecutionResponse, error) {
+func (s *AcademicYearService) ExecutePromotion(ctx context.Context, userID bson.ObjectID, req dto.PromotionExecutionRequest) (*dto.ProcessExecutionResponse, error) {
 	if req.IdempotencyKey == "" {
 		return nil, errors.New("idempotencyKey wajib disertakan")
 	}
 
 	// 1. Idempotency Check
-	existingJob, err := s.jobRepo.FindByIdempotencyKey(ctx, schoolID, req.IdempotencyKey)
+	existingJob, err := s.jobRepo.FindByIdempotencyKey(ctx, req.IdempotencyKey)
 	if err == nil && existingJob != nil {
 		return &dto.ProcessExecutionResponse{
 			JobID: existingJob.ID.Hex(),
@@ -502,7 +500,7 @@ func (s *AcademicYearService) ExecutePromotion(ctx context.Context, schoolID, us
 	}
 
 	// 2. Validate Target Academic Year
-	targetYear, err := s.ayRepo.FindByID(ctx, schoolID, targetOID)
+	targetYear, err := s.ayRepo.FindByID(ctx, targetOID)
 	if err != nil {
 		return nil, errors.New("tahun ajaran tujuan tidak ditemukan dalam sekolah ini")
 	}
@@ -512,7 +510,6 @@ func (s *AcademicYearService) ExecutePromotion(ctx context.Context, schoolID, us
 
 	// 3. Create RolloverJob in Processing state
 	job := &model.RolloverJob{
-		SchoolID:             schoolID,
 		SourceAcademicYearID: sourceOID,
 		TargetAcademicYearID: &targetOID,
 		ProcessType:          model.ProcessTypePromotion,
@@ -557,7 +554,7 @@ func (s *AcademicYearService) ExecutePromotion(ctx context.Context, schoolID, us
 
 			// Validate class belongs to school and target academic year
 			targetClass, err := s.classRepo.FindByID(ctx, targetClassOID)
-			if err != nil || targetClass == nil || targetClass.SchoolID != schoolID || targetClass.AcademicYearID != targetOID {
+			if err != nil || targetClass == nil || targetClass.AcademicYearID != targetOID {
 				failed++
 				executionErrors = append(executionErrors, fmt.Sprintf("Kelas tujuan tidak valid atau bukan milik tahun ajaran tujuan untuk siswa %s", student.NIS))
 				continue
@@ -566,7 +563,6 @@ func (s *AcademicYearService) ExecutePromotion(ctx context.Context, schoolID, us
 			// 1. Update Student active class
 			if err := s.studentRepo.Update(ctx, stOID, bson.M{
 				"classId":   targetClassOID,
-				"schoolId":  schoolID,
 				"status":    "active",
 				"updatedAt": now,
 			}); err != nil {
@@ -587,7 +583,6 @@ func (s *AcademicYearService) ExecutePromotion(ctx context.Context, schoolID, us
 			}
 
 			_ = s.enrollmentRepo.Create(ctx, &model.StudentEnrollment{
-				SchoolID:       schoolID,
 				StudentID:      stOID,
 				ClassID:        targetClassOID,
 				AcademicYearID: targetOID,
@@ -596,7 +591,6 @@ func (s *AcademicYearService) ExecutePromotion(ctx context.Context, schoolID, us
 
 			// 3. Record AcademicDecision
 			_ = s.decisionRepo.Create(ctx, &model.AcademicDecision{
-				SchoolID:             schoolID,
 				StudentID:            stOID,
 				SourceAcademicYearID: sourceOID,
 				TargetAcademicYearID: &targetOID,
@@ -620,7 +614,6 @@ func (s *AcademicYearService) ExecutePromotion(ctx context.Context, schoolID, us
 				reason = "Kenaikan kelas ditangguhkan"
 			}
 			_ = s.decisionRepo.Create(ctx, &model.AcademicDecision{
-				SchoolID:             schoolID,
 				StudentID:            stOID,
 				SourceAcademicYearID: sourceOID,
 				TargetAcademicYearID: &targetOID,
@@ -639,7 +632,6 @@ func (s *AcademicYearService) ExecutePromotion(ctx context.Context, schoolID, us
 		case "excluded":
 			excluded++
 			_ = s.decisionRepo.Create(ctx, &model.AcademicDecision{
-				SchoolID:             schoolID,
 				StudentID:            stOID,
 				SourceAcademicYearID: sourceOID,
 				TargetAcademicYearID: &targetOID,
@@ -681,7 +673,7 @@ func (s *AcademicYearService) ExecutePromotion(ctx context.Context, schoolID, us
 	}
 
 	compAt := time.Now()
-	_ = s.jobRepo.Update(ctx, schoolID, job.ID, bson.M{
+	_ = s.jobRepo.Update(ctx, job.ID, bson.M{
 		"status":       jobFinalStatus,
 		"summary":      summary,
 		"errorMessage": errMsg,
@@ -689,7 +681,7 @@ func (s *AcademicYearService) ExecutePromotion(ctx context.Context, schoolID, us
 	})
 
 	if s.auditRepo != nil {
-		_ = s.auditRepo.Log(ctx, schoolID, userID, "promotion.execute", "rollover_job", job.ID.Hex(), bson.M{
+		_ = s.auditRepo.Log(ctx, userID, "promotion.execute", "rollover_job", job.ID.Hex(), bson.M{
 			"sourceYearId": sourceOID.Hex(),
 			"targetYearId": targetOID.Hex(),
 			"promoted":     promoted,
@@ -716,8 +708,8 @@ func (s *AcademicYearService) ExecutePromotion(ctx context.Context, schoolID, us
 }
 
 // GetPromotionHistory returns execution history of promotions for a year
-func (s *AcademicYearService) GetPromotionHistory(ctx context.Context, schoolID, sourceYearID bson.ObjectID) ([]dto.RolloverJobResponse, error) {
-	jobs, err := s.jobRepo.FindByYearAndType(ctx, schoolID, sourceYearID, model.ProcessTypePromotion)
+func (s *AcademicYearService) GetPromotionHistory(ctx context.Context, sourceYearID bson.ObjectID) ([]dto.RolloverJobResponse, error) {
+	jobs, err := s.jobRepo.FindByYearAndType(ctx, sourceYearID, model.ProcessTypePromotion)
 	if err != nil {
 		return nil, err
 	}
@@ -733,15 +725,14 @@ func (s *AcademicYearService) GetPromotionHistory(ctx context.Context, schoolID,
 // ============================================================================
 
 // GetGraduationCandidates loads potential graduates (final grade students)
-func (s *AcademicYearService) GetGraduationCandidates(ctx context.Context, schoolID, academicYearID bson.ObjectID) ([]dto.GraduationCandidateItem, error) {
-	_, err := s.ayRepo.FindByID(ctx, schoolID, academicYearID)
+func (s *AcademicYearService) GetGraduationCandidates(ctx context.Context, academicYearID bson.ObjectID) ([]dto.GraduationCandidateItem, error) {
+	_, err := s.ayRepo.FindByID(ctx, academicYearID)
 	if err != nil {
 		return nil, errors.New("tahun ajaran tidak ditemukan")
 	}
 
 	// 1. Find classes in this year
 	classes, _, err := s.classRepo.List(ctx, bson.M{
-		"schoolId":       schoolID,
 		"academicYearId": academicYearID,
 		"status":         bson.M{"$ne": "archived"},
 	}, 1, 1000)
@@ -860,13 +851,13 @@ func (s *AcademicYearService) GetGraduationCandidates(ctx context.Context, schoo
 }
 
 // PreviewGraduation previews graduation decisions
-func (s *AcademicYearService) PreviewGraduation(ctx context.Context, schoolID bson.ObjectID, req dto.GraduationPreviewRequest) (*dto.GraduationPreviewResponse, error) {
+func (s *AcademicYearService) PreviewGraduation(ctx context.Context, req dto.GraduationPreviewRequest) (*dto.GraduationPreviewResponse, error) {
 	ayOID, err := bson.ObjectIDFromHex(req.AcademicYearID)
 	if err != nil {
 		return nil, errors.New("id tahun ajaran tidak valid")
 	}
 
-	candidates, err := s.GetGraduationCandidates(ctx, schoolID, ayOID)
+	candidates, err := s.GetGraduationCandidates(ctx, ayOID)
 	if err != nil {
 		return nil, err
 	}
@@ -923,13 +914,13 @@ func (s *AcademicYearService) PreviewGraduation(ctx context.Context, schoolID bs
 }
 
 // ExecuteGraduation mass-graduates students safely
-func (s *AcademicYearService) ExecuteGraduation(ctx context.Context, schoolID, userID bson.ObjectID, req dto.GraduationExecutionRequest) (*dto.ProcessExecutionResponse, error) {
+func (s *AcademicYearService) ExecuteGraduation(ctx context.Context, userID bson.ObjectID, req dto.GraduationExecutionRequest) (*dto.ProcessExecutionResponse, error) {
 	if req.IdempotencyKey == "" {
 		return nil, errors.New("idempotencyKey wajib disertakan")
 	}
 
 	// 1. Idempotency Check
-	existingJob, err := s.jobRepo.FindByIdempotencyKey(ctx, schoolID, req.IdempotencyKey)
+	existingJob, err := s.jobRepo.FindByIdempotencyKey(ctx, req.IdempotencyKey)
 	if err == nil && existingJob != nil {
 		return &dto.ProcessExecutionResponse{
 			JobID: existingJob.ID.Hex(),
@@ -950,13 +941,12 @@ func (s *AcademicYearService) ExecuteGraduation(ctx context.Context, schoolID, u
 		return nil, errors.New("id tahun ajaran tidak valid")
 	}
 
-	ay, err := s.ayRepo.FindByID(ctx, schoolID, ayOID)
+	ay, err := s.ayRepo.FindByID(ctx, ayOID)
 	if err != nil {
 		return nil, errors.New("tahun ajaran tidak ditemukan")
 	}
 
 	job := &model.RolloverJob{
-		SchoolID:             schoolID,
 		SourceAcademicYearID: ayOID,
 		ProcessType:          model.ProcessTypeGraduation,
 		Status:               model.JobStatusProcessing,
@@ -1016,7 +1006,6 @@ func (s *AcademicYearService) ExecuteGraduation(ctx context.Context, schoolID, u
 				"status":         "graduated",
 				"graduationYear": gradYear,
 				"graduatedAt":    gradDate,
-				"schoolId":       schoolID,
 				"updatedAt":      now,
 			}); err != nil {
 				failed++
@@ -1028,7 +1017,6 @@ func (s *AcademicYearService) ExecuteGraduation(ctx context.Context, schoolID, u
 
 			// Record in StudentEnrollment as completed/graduated
 			_ = s.enrollmentRepo.Create(ctx, &model.StudentEnrollment{
-				SchoolID:       schoolID,
 				StudentID:      stOID,
 				ClassID:        sourceClassID,
 				AcademicYearID: ayOID,
@@ -1037,7 +1025,6 @@ func (s *AcademicYearService) ExecuteGraduation(ctx context.Context, schoolID, u
 
 			// Record AcademicDecision
 			_ = s.decisionRepo.Create(ctx, &model.AcademicDecision{
-				SchoolID:             schoolID,
 				StudentID:            stOID,
 				SourceAcademicYearID: ayOID,
 				SourceClassID:        &sourceClassID,
@@ -1059,7 +1046,6 @@ func (s *AcademicYearService) ExecuteGraduation(ctx context.Context, schoolID, u
 				reason = "Kelulusan ditangguhkan"
 			}
 			_ = s.decisionRepo.Create(ctx, &model.AcademicDecision{
-				SchoolID:             schoolID,
 				StudentID:            stOID,
 				SourceAcademicYearID: ayOID,
 				SourceClassID:        &sourceClassID,
@@ -1077,7 +1063,6 @@ func (s *AcademicYearService) ExecuteGraduation(ctx context.Context, schoolID, u
 		case "excluded":
 			excluded++
 			_ = s.decisionRepo.Create(ctx, &model.AcademicDecision{
-				SchoolID:             schoolID,
 				StudentID:            stOID,
 				SourceAcademicYearID: ayOID,
 				SourceClassID:        &sourceClassID,
@@ -1117,7 +1102,7 @@ func (s *AcademicYearService) ExecuteGraduation(ctx context.Context, schoolID, u
 	}
 
 	compAt := time.Now()
-	_ = s.jobRepo.Update(ctx, schoolID, job.ID, bson.M{
+	_ = s.jobRepo.Update(ctx, job.ID, bson.M{
 		"status":       jobFinalStatus,
 		"summary":      summary,
 		"errorMessage": errMsg,
@@ -1125,7 +1110,7 @@ func (s *AcademicYearService) ExecuteGraduation(ctx context.Context, schoolID, u
 	})
 
 	if s.auditRepo != nil {
-		_ = s.auditRepo.Log(ctx, schoolID, userID, "graduation.execute", "rollover_job", job.ID.Hex(), bson.M{
+		_ = s.auditRepo.Log(ctx, userID, "graduation.execute", "rollover_job", job.ID.Hex(), bson.M{
 			"academicYearId": ayOID.Hex(),
 			"graduated":      graduated,
 			"suspended":      suspended,
@@ -1149,8 +1134,8 @@ func (s *AcademicYearService) ExecuteGraduation(ctx context.Context, schoolID, u
 }
 
 // GetGraduationHistory returns historical graduation runs
-func (s *AcademicYearService) GetGraduationHistory(ctx context.Context, schoolID, academicYearID bson.ObjectID) ([]dto.RolloverJobResponse, error) {
-	jobs, err := s.jobRepo.FindByYearAndType(ctx, schoolID, academicYearID, model.ProcessTypeGraduation)
+func (s *AcademicYearService) GetGraduationHistory(ctx context.Context, academicYearID bson.ObjectID) ([]dto.RolloverJobResponse, error) {
+	jobs, err := s.jobRepo.FindByYearAndType(ctx, academicYearID, model.ProcessTypeGraduation)
 	if err != nil {
 		return nil, err
 	}
@@ -1166,8 +1151,8 @@ func (s *AcademicYearService) GetGraduationHistory(ctx context.Context, schoolID
 // ============================================================================
 
 // GetSuspendedDecisions retrieves all unresolved suspended decisions for a given academic year
-func (s *AcademicYearService) GetSuspendedDecisions(ctx context.Context, schoolID, academicYearID bson.ObjectID) ([]dto.SuspendedDecisionItem, error) {
-	decisions, err := s.decisionRepo.FindSuspendedByYear(ctx, schoolID, academicYearID)
+func (s *AcademicYearService) GetSuspendedDecisions(ctx context.Context, academicYearID bson.ObjectID) ([]dto.SuspendedDecisionItem, error) {
+	decisions, err := s.decisionRepo.FindSuspendedByYear(ctx, academicYearID)
 	if err != nil {
 		return nil, err
 	}
@@ -1237,8 +1222,8 @@ func (s *AcademicYearService) GetSuspendedDecisions(ctx context.Context, schoolI
 }
 
 // GetDecisionDetail fetches a specific decision
-func (s *AcademicYearService) GetDecisionDetail(ctx context.Context, schoolID, decisionID bson.ObjectID) (*dto.SuspendedDecisionItem, error) {
-	d, err := s.decisionRepo.FindByID(ctx, schoolID, decisionID)
+func (s *AcademicYearService) GetDecisionDetail(ctx context.Context, decisionID bson.ObjectID) (*dto.SuspendedDecisionItem, error) {
+	d, err := s.decisionRepo.FindByID(ctx, decisionID)
 	if err != nil {
 		return nil, errors.New("keputusan akademik tidak ditemukan")
 	}
@@ -1303,8 +1288,8 @@ func (s *AcademicYearService) GetDecisionDetail(ctx context.Context, schoolID, d
 }
 
 // ReviewDecision records review progress and notes without finalizing the decision
-func (s *AcademicYearService) ReviewDecision(ctx context.Context, schoolID, userID, decisionID bson.ObjectID, req dto.ReviewDecisionRequest) error {
-	d, err := s.decisionRepo.FindByID(ctx, schoolID, decisionID)
+func (s *AcademicYearService) ReviewDecision(ctx context.Context, userID, decisionID bson.ObjectID, req dto.ReviewDecisionRequest) error {
+	d, err := s.decisionRepo.FindByID(ctx, decisionID)
 	if err != nil {
 		return errors.New("keputusan akademik tidak ditemukan")
 	}
@@ -1317,12 +1302,12 @@ func (s *AcademicYearService) ReviewDecision(ctx context.Context, schoolID, user
 		"reason":       fmt.Sprintf("%s (Catatan Peninjauan: %s)", d.Reason, req.ReviewNotes),
 	}
 
-	if err := s.decisionRepo.Update(ctx, schoolID, decisionID, update); err != nil {
+	if err := s.decisionRepo.Update(ctx, decisionID, update); err != nil {
 		return err
 	}
 
 	if s.auditRepo != nil {
-		_ = s.auditRepo.Log(ctx, schoolID, userID, "decision.review", "academic_decision", decisionID.Hex(), bson.M{
+		_ = s.auditRepo.Log(ctx, userID, "decision.review", "academic_decision", decisionID.Hex(), bson.M{
 			"notes": req.ReviewNotes,
 		})
 	}
@@ -1331,8 +1316,8 @@ func (s *AcademicYearService) ReviewDecision(ctx context.Context, schoolID, user
 }
 
 // ResolveDecision resolves a suspended decision into promoted, retained, graduated, or excluded
-func (s *AcademicYearService) ResolveDecision(ctx context.Context, schoolID, userID, decisionID bson.ObjectID, req dto.ResolveDecisionRequest) error {
-	d, err := s.decisionRepo.FindByID(ctx, schoolID, decisionID)
+func (s *AcademicYearService) ResolveDecision(ctx context.Context, userID, decisionID bson.ObjectID, req dto.ResolveDecisionRequest) error {
+	d, err := s.decisionRepo.FindByID(ctx, decisionID)
 	if err != nil {
 		return errors.New("keputusan akademik tidak ditemukan")
 	}
@@ -1353,7 +1338,7 @@ func (s *AcademicYearService) ResolveDecision(ctx context.Context, schoolID, use
 			return errors.New("targetClassId tidak valid")
 		}
 		targetClass, err := s.classRepo.FindByID(ctx, targetClassOID)
-		if err != nil || targetClass == nil || targetClass.SchoolID != schoolID {
+		if err != nil || targetClass == nil {
 			return errors.New("kelas tujuan tidak valid dalam sekolah ini")
 		}
 
@@ -1365,7 +1350,6 @@ func (s *AcademicYearService) ResolveDecision(ctx context.Context, schoolID, use
 		// Update student
 		if err := s.studentRepo.Update(ctx, student.ID, bson.M{
 			"classId":   targetClassOID,
-			"schoolId":  schoolID,
 			"status":    "active",
 			"updatedAt": now,
 		}); err != nil {
@@ -1377,7 +1361,6 @@ func (s *AcademicYearService) ResolveDecision(ctx context.Context, schoolID, use
 			enrollStatus = model.EnrollmentStatusRetained
 		}
 		_ = s.enrollmentRepo.Create(ctx, &model.StudentEnrollment{
-			SchoolID:       schoolID,
 			StudentID:      student.ID,
 			ClassID:        targetClassOID,
 			AcademicYearID: targetYearID,
@@ -1392,7 +1375,7 @@ func (s *AcademicYearService) ResolveDecision(ctx context.Context, schoolID, use
 			"reviewedAt":     now,
 			"reason":         fmt.Sprintf("Diselesaikan: %s", req.Notes),
 		}
-		_ = s.decisionRepo.Update(ctx, schoolID, decisionID, update)
+		_ = s.decisionRepo.Update(ctx, decisionID, update)
 
 	case "graduated":
 		gradDate := now
@@ -1403,14 +1386,12 @@ func (s *AcademicYearService) ResolveDecision(ctx context.Context, schoolID, use
 			"status":         "graduated",
 			"graduationYear": gradDate.Year(),
 			"graduatedAt":    gradDate,
-			"schoolId":       schoolID,
 			"updatedAt":      now,
 		}); err != nil {
 			return err
 		}
 
 		_ = s.enrollmentRepo.Create(ctx, &model.StudentEnrollment{
-			SchoolID:       schoolID,
 			StudentID:      student.ID,
 			ClassID:        student.ClassID,
 			AcademicYearID: d.SourceAcademicYearID,
@@ -1424,7 +1405,7 @@ func (s *AcademicYearService) ResolveDecision(ctx context.Context, schoolID, use
 			"reviewedAt":     now,
 			"reason":         fmt.Sprintf("Kelulusan disahkan: %s", req.Notes),
 		}
-		_ = s.decisionRepo.Update(ctx, schoolID, decisionID, update)
+		_ = s.decisionRepo.Update(ctx, decisionID, update)
 
 	case "excluded":
 		update := bson.M{
@@ -1434,11 +1415,11 @@ func (s *AcademicYearService) ResolveDecision(ctx context.Context, schoolID, use
 			"reviewedAt":     now,
 			"reason":         fmt.Sprintf("Dikecualikan: %s", req.Notes),
 		}
-		_ = s.decisionRepo.Update(ctx, schoolID, decisionID, update)
+		_ = s.decisionRepo.Update(ctx, decisionID, update)
 	}
 
 	if s.auditRepo != nil {
-		_ = s.auditRepo.Log(ctx, schoolID, userID, "decision.resolve", "academic_decision", decisionID.Hex(), bson.M{
+		_ = s.auditRepo.Log(ctx, userID, "decision.resolve", "academic_decision", decisionID.Hex(), bson.M{
 			"action":    req.Action,
 			"studentId": student.ID.Hex(),
 			"notes":     req.Notes,
@@ -1489,12 +1470,12 @@ func (s *AcademicYearService) formatJobResponse(ctx context.Context, j *model.Ro
 	execName := "Administrator"
 
 	if s.ayRepo != nil {
-		if y, err := s.ayRepo.FindByID(ctx, j.SchoolID, j.SourceAcademicYearID); err == nil && y != nil {
+		if y, err := s.ayRepo.FindByID(ctx, j.SourceAcademicYearID); err == nil && y != nil {
 			srcName = y.Name
 		}
 		if j.TargetAcademicYearID != nil && !j.TargetAcademicYearID.IsZero() {
 			targetYearHex = j.TargetAcademicYearID.Hex()
-			if y, err := s.ayRepo.FindByID(ctx, j.SchoolID, *j.TargetAcademicYearID); err == nil && y != nil {
+			if y, err := s.ayRepo.FindByID(ctx, *j.TargetAcademicYearID); err == nil && y != nil {
 				targetName = y.Name
 			}
 		}

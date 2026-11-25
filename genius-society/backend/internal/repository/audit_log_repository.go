@@ -20,9 +20,9 @@ func NewAuditLogRepository(db *mongo.Database) *AuditLogRepository {
 	}
 }
 
-func (r *AuditLogRepository) Log(ctx context.Context, schoolID, userID bson.ObjectID, action, entityType, entityID string, details bson.M) error {
+func (r *AuditLogRepository) Log(ctx context.Context, userID bson.ObjectID, action, entityType, entityID string, details bson.M) error {
 	log := &model.AuditLog{
-		SchoolID:   schoolID,
+		
 		UserID:     userID,
 		Action:     action,
 		EntityType: entityType,
@@ -38,8 +38,8 @@ func (r *AuditLogRepository) Log(ctx context.Context, schoolID, userID bson.Obje
 	return nil
 }
 
-func (r *AuditLogRepository) ListBySchool(ctx context.Context, schoolID bson.ObjectID, limit int64) ([]*model.AuditLog, error) {
-	filter := bson.M{"schoolId": schoolID}
+func (r *AuditLogRepository) ListBySchool(ctx context.Context, limit int64) ([]*model.AuditLog, error) {
+	filter := bson.M{}
 	opts := options.Find().SetSort(bson.D{{Key: "timestamp", Value: -1}}).SetLimit(limit)
 	cur, err := r.coll.Find(ctx, filter, opts)
 	if err != nil {

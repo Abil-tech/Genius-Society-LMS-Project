@@ -11,10 +11,10 @@ import (
 
 // WalasRepository handles persistence queries for homeroom teacher operations.
 type WalasRepository interface {
-	FindStudentsByClassID(ctx context.Context, schoolID, classID bson.ObjectID) ([]*model.Student, error)
+	FindStudentsByClassID(ctx context.Context, classID bson.ObjectID) ([]*model.Student, error)
 	FindUsersByIDs(ctx context.Context, userIDs []bson.ObjectID) (map[bson.ObjectID]*model.User, error)
-	FindGradesByClass(ctx context.Context, schoolID, classID, academicYearID bson.ObjectID) ([]*model.Grade, error)
-	FindSubjectsBySchool(ctx context.Context, schoolID bson.ObjectID) ([]*model.Subject, error)
+	FindGradesByClass(ctx context.Context, classID, academicYearID bson.ObjectID) ([]*model.Grade, error)
+	FindSubjectsBySchool(ctx context.Context, ) ([]*model.Subject, error)
 	FindSubjectsByIDs(ctx context.Context, ids []bson.ObjectID) (map[bson.ObjectID]*model.Subject, error)
 }
 
@@ -35,9 +35,9 @@ func NewWalasRepository(db *mongo.Database) WalasRepository {
 	}
 }
 
-func (r *walasRepoImpl) FindStudentsByClassID(ctx context.Context, schoolID, classID bson.ObjectID) ([]*model.Student, error) {
+func (r *walasRepoImpl) FindStudentsByClassID(ctx context.Context, classID bson.ObjectID) ([]*model.Student, error) {
 	filter := bson.M{
-		"schoolId": schoolID,
+		
 		"classId":  classID,
 		"status":   "active",
 	}
@@ -72,9 +72,9 @@ func (r *walasRepoImpl) FindUsersByIDs(ctx context.Context, userIDs []bson.Objec
 	return result, nil
 }
 
-func (r *walasRepoImpl) FindGradesByClass(ctx context.Context, schoolID, classID, academicYearID bson.ObjectID) ([]*model.Grade, error) {
+func (r *walasRepoImpl) FindGradesByClass(ctx context.Context, classID, academicYearID bson.ObjectID) ([]*model.Grade, error) {
 	filter := bson.M{
-		"schoolId":       schoolID,
+		
 		"classId":        classID,
 		"academicYearId": academicYearID,
 	}
@@ -89,8 +89,8 @@ func (r *walasRepoImpl) FindGradesByClass(ctx context.Context, schoolID, classID
 	return items, nil
 }
 
-func (r *walasRepoImpl) FindSubjectsBySchool(ctx context.Context, schoolID bson.ObjectID) ([]*model.Subject, error) {
-	cursor, err := r.subjects.Find(ctx, bson.M{"schoolId": schoolID})
+func (r *walasRepoImpl) FindSubjectsBySchool(ctx context.Context, ) ([]*model.Subject, error) {
+	cursor, err := r.subjects.Find(ctx, bson.M{})
 	if err != nil {
 		return nil, err
 	}

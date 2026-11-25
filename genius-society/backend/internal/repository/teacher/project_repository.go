@@ -14,20 +14,20 @@ import (
 
 // ProjectRepository defines database operations for projects and project submissions.
 type ProjectRepository interface {
-	FindProjects(ctx context.Context, schoolID, teacherID bson.ObjectID, classID, subjectID *bson.ObjectID, search string, page, limit int64) ([]*model.Project, int64, error)
-	FindProjectByID(ctx context.Context, schoolID, teacherID, id bson.ObjectID) (*model.Project, error)
+	FindProjects(ctx context.Context, teacherID bson.ObjectID, classID, subjectID *bson.ObjectID, search string, page, limit int64) ([]*model.Project, int64, error)
+	FindProjectByID(ctx context.Context, teacherID, id bson.ObjectID) (*model.Project, error)
 	CreateProject(ctx context.Context, p *model.Project) error
 	UpdateProject(ctx context.Context, p *model.Project) error
-	DeleteProject(ctx context.Context, schoolID, teacherID, id bson.ObjectID) error
-	CountSubmissionsByProjectID(ctx context.Context, schoolID, projectID bson.ObjectID) (int64, error)
-	FindSubmissions(ctx context.Context, schoolID, projectID bson.ObjectID) ([]*model.ProjectSubmission, error)
-	FindSubmissionByID(ctx context.Context, schoolID, submissionID bson.ObjectID) (*model.ProjectSubmission, error)
-	FindStudentsByClassIDs(ctx context.Context, schoolID bson.ObjectID, classIDs []bson.ObjectID) ([]*model.Student, error)
-	FindStudentByID(ctx context.Context, schoolID, studentID bson.ObjectID) (*model.Student, error)
+	DeleteProject(ctx context.Context, teacherID, id bson.ObjectID) error
+	CountSubmissionsByProjectID(ctx context.Context, projectID bson.ObjectID) (int64, error)
+	FindSubmissions(ctx context.Context, projectID bson.ObjectID) ([]*model.ProjectSubmission, error)
+	FindSubmissionByID(ctx context.Context, submissionID bson.ObjectID) (*model.ProjectSubmission, error)
+	FindStudentsByClassIDs(ctx context.Context, classIDs []bson.ObjectID) ([]*model.Student, error)
+	FindStudentByID(ctx context.Context, studentID bson.ObjectID) (*model.Student, error)
 	FindUsersMap(ctx context.Context, userIDs []bson.ObjectID) (map[bson.ObjectID]*model.User, error)
-	FindClassesMap(ctx context.Context, schoolID bson.ObjectID, classIDs []bson.ObjectID) (map[bson.ObjectID]*model.Class, error)
+	FindClassesMap(ctx context.Context, classIDs []bson.ObjectID) (map[bson.ObjectID]*model.Class, error)
 	FindSubjectsMap(ctx context.Context, subjectIDs []bson.ObjectID) (map[bson.ObjectID]*model.Subject, error)
-	GradeSubmissionInTransaction(ctx context.Context, schoolID, teacherID bson.ObjectID, submission *model.ProjectSubmission, grade *model.Grade, audit *model.AuditLog) error
+	GradeSubmissionInTransaction(ctx context.Context, teacherID bson.ObjectID, submission *model.ProjectSubmission, grade *model.Grade, audit *model.AuditLog) error
 }
 
 type projectRepoImpl struct {
@@ -57,9 +57,9 @@ func NewProjectRepository(db *mongo.Database) ProjectRepository {
 	}
 }
 
-func (r *projectRepoImpl) FindProjects(ctx context.Context, schoolID, teacherID bson.ObjectID, classID, subjectID *bson.ObjectID, search string, page, limit int64) ([]*model.Project, int64, error) {
+func (r *projectRepoImpl) FindProjects(ctx context.Context, teacherID bson.ObjectID, classID, subjectID *bson.ObjectID, search string, page, limit int64) ([]*model.Project, int64, error) {
 	filter := bson.M{
-		"schoolId":  schoolID,
+		
 		"teacherId": teacherID,
 	}
 	if classID != nil && !classID.IsZero() {
@@ -97,10 +97,10 @@ func (r *projectRepoImpl) FindProjects(ctx context.Context, schoolID, teacherID 
 	return list, total, nil
 }
 
-func (r *projectRepoImpl) FindProjectByID(ctx context.Context, schoolID, teacherID, id bson.ObjectID) (*model.Project, error) {
+func (r *projectRepoImpl) FindProjectByID(ctx context.Context, teacherID, id bson.ObjectID) (*model.Project, error) {
 	filter := bson.M{
 		"_id":       id,
-		"schoolId":  schoolID,
+		
 		"teacherId": teacherID,
 	}
 	var p model.Project
@@ -128,17 +128,17 @@ func (r *projectRepoImpl) CreateProject(ctx context.Context, p *model.Project) e
 func (r *projectRepoImpl) UpdateProject(ctx context.Context, p *model.Project) error {
 	filter := bson.M{
 		"_id":       p.ID,
-		"schoolId":  p.SchoolID,
+		
 		"teacherId": p.TeacherID,
 	}
 	_, err := r.projects.ReplaceOne(ctx, filter, p)
 	return err
 }
 
-func (r *projectRepoImpl) DeleteProject(ctx context.Context, schoolID, teacherID, id bson.ObjectID) error {
+func (r *projectRepoImpl) DeleteProject(ctx context.Context, teacherID, id bson.ObjectID) error {
 	filter := bson.M{
 		"_id":       id,
-		"schoolId":  schoolID,
+		
 		"teacherId": teacherID,
 	}
 	res, err := r.projects.DeleteOne(ctx, filter)
@@ -151,18 +151,18 @@ func (r *projectRepoImpl) DeleteProject(ctx context.Context, schoolID, teacherID
 	return nil
 }
 
-func (r *projectRepoImpl) CountSubmissionsByProjectID(ctx context.Context, schoolID, projectID bson.ObjectID) (int64, error) {
+func (r *projectRepoImpl) CountSubmissionsByProjectID(ctx context.Context, projectID bson.ObjectID) (int64, error) {
 	filter := bson.M{
 		"projectId": projectID,
-		"schoolId":  schoolID,
+		
 	}
 	return r.submissions.CountDocuments(ctx, filter)
 }
 
-func (r *projectRepoImpl) FindSubmissions(ctx context.Context, schoolID, projectID bson.ObjectID) ([]*model.ProjectSubmission, error) {
+func (r *projectRepoImpl) FindSubmissions(ctx context.Context, projectID bson.ObjectID) ([]*model.ProjectSubmission, error) {
 	filter := bson.M{
 		"projectId": projectID,
-		"schoolId":  schoolID,
+		
 	}
 	opts := options.Find().SetSort(bson.D{{Key: "version", Value: -1}})
 	cur, err := r.submissions.Find(ctx, filter, opts)
@@ -178,10 +178,10 @@ func (r *projectRepoImpl) FindSubmissions(ctx context.Context, schoolID, project
 	return list, nil
 }
 
-func (r *projectRepoImpl) FindSubmissionByID(ctx context.Context, schoolID, submissionID bson.ObjectID) (*model.ProjectSubmission, error) {
+func (r *projectRepoImpl) FindSubmissionByID(ctx context.Context, submissionID bson.ObjectID) (*model.ProjectSubmission, error) {
 	filter := bson.M{
 		"_id":      submissionID,
-		"schoolId": schoolID,
+		
 	}
 	var sub model.ProjectSubmission
 	err := r.submissions.FindOne(ctx, filter).Decode(&sub)
@@ -194,12 +194,12 @@ func (r *projectRepoImpl) FindSubmissionByID(ctx context.Context, schoolID, subm
 	return &sub, nil
 }
 
-func (r *projectRepoImpl) FindStudentsByClassIDs(ctx context.Context, schoolID bson.ObjectID, classIDs []bson.ObjectID) ([]*model.Student, error) {
+func (r *projectRepoImpl) FindStudentsByClassIDs(ctx context.Context, classIDs []bson.ObjectID) ([]*model.Student, error) {
 	if len(classIDs) == 0 {
 		return []*model.Student{}, nil
 	}
 	filter := bson.M{
-		"schoolId": schoolID,
+		
 		"classId":  bson.M{"$in": classIDs},
 		"status":   "active",
 	}
@@ -216,10 +216,10 @@ func (r *projectRepoImpl) FindStudentsByClassIDs(ctx context.Context, schoolID b
 	return list, nil
 }
 
-func (r *projectRepoImpl) FindStudentByID(ctx context.Context, schoolID, studentID bson.ObjectID) (*model.Student, error) {
+func (r *projectRepoImpl) FindStudentByID(ctx context.Context, studentID bson.ObjectID) (*model.Student, error) {
 	filter := bson.M{
 		"_id":      studentID,
-		"schoolId": schoolID,
+		
 	}
 	var s model.Student
 	err := r.students.FindOne(ctx, filter).Decode(&s)
@@ -252,14 +252,14 @@ func (r *projectRepoImpl) FindUsersMap(ctx context.Context, userIDs []bson.Objec
 	return result, nil
 }
 
-func (r *projectRepoImpl) FindClassesMap(ctx context.Context, schoolID bson.ObjectID, classIDs []bson.ObjectID) (map[bson.ObjectID]*model.Class, error) {
+func (r *projectRepoImpl) FindClassesMap(ctx context.Context, classIDs []bson.ObjectID) (map[bson.ObjectID]*model.Class, error) {
 	result := make(map[bson.ObjectID]*model.Class)
 	if len(classIDs) == 0 {
 		return result, nil
 	}
 	filter := bson.M{
 		"_id":      bson.M{"$in": classIDs},
-		"schoolId": schoolID,
+		
 	}
 	cur, err := r.classes.Find(ctx, filter)
 	if err != nil {
@@ -295,12 +295,12 @@ func (r *projectRepoImpl) FindSubjectsMap(ctx context.Context, subjectIDs []bson
 	return result, nil
 }
 
-func (r *projectRepoImpl) GradeSubmissionInTransaction(ctx context.Context, schoolID, teacherID bson.ObjectID, submission *model.ProjectSubmission, grade *model.Grade, audit *model.AuditLog) error {
+func (r *projectRepoImpl) GradeSubmissionInTransaction(ctx context.Context, teacherID bson.ObjectID, submission *model.ProjectSubmission, grade *model.Grade, audit *model.AuditLog) error {
 	executeOps := func(sc context.Context) error {
 		// 1. Update project submission
 		subFilter := bson.M{
 			"_id":      submission.ID,
-			"schoolId": schoolID,
+			
 		}
 		subUpdate := bson.M{
 			"$set": bson.M{
@@ -327,7 +327,7 @@ func (r *projectRepoImpl) GradeSubmissionInTransaction(ctx context.Context, scho
 		gradeUpdate := bson.M{
 			"$set": bson.M{
 				"score":     grade.Score,
-				"schoolId":  schoolID,
+				
 				"teacherId": teacherID,
 				"classId":   grade.ClassID,
 				"source":    grade.Source,

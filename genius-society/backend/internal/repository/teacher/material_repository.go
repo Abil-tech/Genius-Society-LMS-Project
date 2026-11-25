@@ -13,12 +13,12 @@ import (
 
 // MaterialRepository defines database operations for materials.
 type MaterialRepository interface {
-	FindMaterials(ctx context.Context, schoolID, teacherID bson.ObjectID, classID, subjectID *bson.ObjectID, search string, page, limit int64) ([]*model.Material, int64, error)
-	FindMaterialByID(ctx context.Context, schoolID, teacherID, id bson.ObjectID) (*model.Material, error)
+	FindMaterials(ctx context.Context, teacherID bson.ObjectID, classID, subjectID *bson.ObjectID, search string, page, limit int64) ([]*model.Material, int64, error)
+	FindMaterialByID(ctx context.Context, teacherID, id bson.ObjectID) (*model.Material, error)
 	CreateMaterial(ctx context.Context, m *model.Material) error
 	UpdateMaterial(ctx context.Context, m *model.Material) error
-	DeleteMaterial(ctx context.Context, schoolID, teacherID, id bson.ObjectID) error
-	FindClassesMap(ctx context.Context, schoolID bson.ObjectID, classIDs []bson.ObjectID) (map[bson.ObjectID]*model.Class, error)
+	DeleteMaterial(ctx context.Context, teacherID, id bson.ObjectID) error
+	FindClassesMap(ctx context.Context, classIDs []bson.ObjectID) (map[bson.ObjectID]*model.Class, error)
 	FindSubjectsMap(ctx context.Context, subjectIDs []bson.ObjectID) (map[bson.ObjectID]*model.Subject, error)
 }
 
@@ -37,9 +37,8 @@ func NewMaterialRepository(db *mongo.Database) MaterialRepository {
 	}
 }
 
-func (r *materialRepoImpl) FindMaterials(ctx context.Context, schoolID, teacherID bson.ObjectID, classID, subjectID *bson.ObjectID, search string, page, limit int64) ([]*model.Material, int64, error) {
+func (r *materialRepoImpl) FindMaterials(ctx context.Context, teacherID bson.ObjectID, classID, subjectID *bson.ObjectID, search string, page, limit int64) ([]*model.Material, int64, error) {
 	filter := bson.M{
-		"schoolId":  schoolID,
 		"teacherId": teacherID,
 	}
 
@@ -78,10 +77,9 @@ func (r *materialRepoImpl) FindMaterials(ctx context.Context, schoolID, teacherI
 	return list, total, nil
 }
 
-func (r *materialRepoImpl) FindMaterialByID(ctx context.Context, schoolID, teacherID, id bson.ObjectID) (*model.Material, error) {
+func (r *materialRepoImpl) FindMaterialByID(ctx context.Context, teacherID, id bson.ObjectID) (*model.Material, error) {
 	filter := bson.M{
 		"_id":       id,
-		"schoolId":  schoolID,
 		"teacherId": teacherID,
 	}
 
@@ -110,17 +108,15 @@ func (r *materialRepoImpl) CreateMaterial(ctx context.Context, m *model.Material
 func (r *materialRepoImpl) UpdateMaterial(ctx context.Context, m *model.Material) error {
 	filter := bson.M{
 		"_id":       m.ID,
-		"schoolId":  m.SchoolID,
 		"teacherId": m.TeacherID,
 	}
 	_, err := r.materials.ReplaceOne(ctx, filter, m)
 	return err
 }
 
-func (r *materialRepoImpl) DeleteMaterial(ctx context.Context, schoolID, teacherID, id bson.ObjectID) error {
+func (r *materialRepoImpl) DeleteMaterial(ctx context.Context, teacherID, id bson.ObjectID) error {
 	filter := bson.M{
 		"_id":       id,
-		"schoolId":  schoolID,
 		"teacherId": teacherID,
 	}
 	res, err := r.materials.DeleteOne(ctx, filter)
@@ -133,14 +129,13 @@ func (r *materialRepoImpl) DeleteMaterial(ctx context.Context, schoolID, teacher
 	return nil
 }
 
-func (r *materialRepoImpl) FindClassesMap(ctx context.Context, schoolID bson.ObjectID, classIDs []bson.ObjectID) (map[bson.ObjectID]*model.Class, error) {
+func (r *materialRepoImpl) FindClassesMap(ctx context.Context, classIDs []bson.ObjectID) (map[bson.ObjectID]*model.Class, error) {
 	result := make(map[bson.ObjectID]*model.Class)
 	if len(classIDs) == 0 {
 		return result, nil
 	}
 	filter := bson.M{
-		"_id":      bson.M{"$in": classIDs},
-		"schoolId": schoolID,
+		"_id": bson.M{"$in": classIDs},
 	}
 	cur, err := r.classes.Find(ctx, filter)
 	if err != nil {

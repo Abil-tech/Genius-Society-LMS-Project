@@ -65,9 +65,9 @@ func (m *mockClassRepository) Create(ctx context.Context, class *model.Class) er
 	return nil
 }
 
-func (m *mockClassRepository) ExistsByCode(ctx context.Context, schoolID, academicYearID bson.ObjectID, code string) (bool, error) {
+func (m *mockClassRepository) ExistsByCode(ctx context.Context, academicYearID bson.ObjectID, code string) (bool, error) {
 	for _, c := range m.classes {
-		if c.SchoolID == schoolID && c.AcademicYearID == academicYearID && c.Code == code && c.Status != "archived" {
+		if c.AcademicYearID == academicYearID && c.Code == code && c.Status != "archived" {
 			return true, nil
 		}
 	}
@@ -129,7 +129,7 @@ func (m *mockClassRepository) CountByFilter(ctx context.Context, filter bson.M) 
 	return total, nil
 }
 
-// helper constructs a Gin engine with auth simulation, SetSchoolID and the class handler.
+// helper constructs a Gin engine with auth simulation and the class handler.
 func setupRouter(userRepo interface {
 	FindByID(context.Context, bson.ObjectID) (*model.User, error)
 }, svc *service.ClassService, role model.Role) *gin.Engine {
@@ -141,8 +141,6 @@ func setupRouter(userRepo interface {
 		c.Set(middleware.ContextKeyRole, role)
 		c.Next()
 	})
-	// Use the SetSchoolID middleware with the provided repo (mockUserRepo implements the required interface).
-	r.Use(middleware.SetSchoolID(userRepo))
 	classHandler := NewClassManagementHandler(svc)
 	classes := r.Group("/classes")
 	classes.Use(middleware.RequireRoles(model.RoleAdmin))
@@ -156,76 +154,9 @@ func setupRouter(userRepo interface {
 	return r
 }
 
-func TestSetSchoolID_Success(t *testing.T) {
-	user := &model.User{ID: bson.NewObjectID(), SchoolID: bson.NewObjectID()}
-	repo := &mockUserRepo{user: user}
-	// Simple handler to verify schoolID is set.
-	r := gin.New()
-	r.Use(func(c *gin.Context) {
-		c.Set(middleware.ContextKeyUserID, user.ID.Hex())
-		c.Next()
-	})
-	r.Use(middleware.SetSchoolID(repo))
-	r.GET("/test", func(c *gin.Context) {
-		if v, ok := c.Get("schoolID"); !ok || v != user.SchoolID.Hex() {
-			c.Status(http.StatusInternalServerError)
-			return
-		}
-		c.Status(http.StatusOK)
-	})
-	w := httptest.NewRecorder()
-	req, _ := http.NewRequest(http.MethodGet, "/test", nil)
-	r.ServeHTTP(w, req)
-	if w.Code != http.StatusOK {
-		t.Fatalf("expected 200, got %d", w.Code)
-	}
-}
-
-func TestSetSchoolID_NoSchool(t *testing.T) {
-	user := &model.User{ID: bson.NewObjectID()}
-	repo := &mockUserRepo{user: user}
-	r := gin.New()
-	r.Use(func(c *gin.Context) {
-		c.Set(middleware.ContextKeyUserID, user.ID.Hex())
-		c.Next()
-	})
-	r.Use(middleware.SetSchoolID(repo))
-	r.GET("/test", func(c *gin.Context) { c.Status(http.StatusOK) })
-	w := httptest.NewRecorder()
-	req, _ := http.NewRequest(http.MethodGet, "/test", nil)
-	r.ServeHTTP(w, req)
-	if w.Code != http.StatusForbidden {
-		t.Fatalf("expected 403 when user has no school, got %d", w.Code)
-	}
-}
-
-func TestCreateClass_IgnoresHeaderSchoolID(t *testing.T) {
-	adminUser := &model.User{ID: bson.NewObjectID(), SchoolID: bson.NewObjectID()}
-	repoUser := &mockUserRepo{user: adminUser}
-	classRepo := &mockClassRepository{}
-	svc := service.NewClassService(classRepo)
-	router := setupRouter(repoUser, svc, model.RoleAdmin)
-
-	// Build request body.
-	payload := dto.ClassCreateDTO{Code: "CLS01", Name: "Test Class", AcademicYearID: "5f1d7f3e2c2e123456789012", Capacity: 30, Status: "active"}
-	body, _ := json.Marshal(payload)
-	req, _ := http.NewRequest(http.MethodPost, "/classes", bytes.NewReader(body))
-	req.Header.Set("Content-Type", "application/json")
-	// Attempt to override school via header – should be ignored.
-	req.Header.Set("X-School-ID", "5f1d7f3e2c2e999999999999")
-	w := httptest.NewRecorder()
-	router.ServeHTTP(w, req)
-	if w.Code != http.StatusCreated {
-		t.Fatalf("expected 201, got %d", w.Code)
-	}
-	if classRepo.receivedSchoolID != adminUser.SchoolID {
-		t.Fatalf("service received wrong schoolID: got %s, want %s", classRepo.receivedSchoolID.Hex(), adminUser.SchoolID.Hex())
-	}
-}
-
 func TestRequireRoles_AdminOnly(t *testing.T) {
 	// Teacher role should be forbidden.
-	teacherUser := &model.User{ID: bson.NewObjectID(), SchoolID: bson.NewObjectID()}
+	teacherUser := &model.User{ID: bson.NewObjectID()}
 	repoUser := &mockUserRepo{user: teacherUser}
 	classRepo := &mockClassRepository{}
 	svc := service.NewClassService(classRepo)
@@ -241,27 +172,15 @@ func TestRequireRoles_AdminOnly(t *testing.T) {
 	}
 }
 
-func TestClassManagementHandler_RBAC_SuperAdminAndPrincipalBlocked(t *testing.T) {
-	// SuperAdmin is blocked from academic Class Management CRUD
-	superAdmin := &model.User{ID: bson.NewObjectID(), SchoolID: bson.NewObjectID()}
-	repoUser := &mockUserRepo{user: superAdmin}
+func TestClassManagementHandler_RBAC_PrincipalBlocked(t *testing.T) {
 	classRepo := &mockClassRepository{}
 	svc := service.NewClassService(classRepo)
-	router := setupRouter(repoUser, svc, model.RoleSuperAdmin)
 
-	// Attempt POST /classes
 	payload := dto.ClassCreateDTO{Code: "CLS01", Name: "Test", AcademicYearID: "5f1d7f3e2c2e123456789012", Capacity: 30, Status: "active"}
 	body, _ := json.Marshal(payload)
-	req, _ := http.NewRequest(http.MethodPost, "/classes", bytes.NewReader(body))
-	req.Header.Set("Content-Type", "application/json")
-	w := httptest.NewRecorder()
-	router.ServeHTTP(w, req)
-	if w.Code != http.StatusForbidden {
-		t.Fatalf("expected 403 Forbidden for SuperAdmin on academic Class CRUD, got %d", w.Code)
-	}
 
 	// Kepala Sekolah (RolePrincipal) is blocked from POST/PUT/DELETE
-	principalUser := &model.User{ID: bson.NewObjectID(), SchoolID: bson.NewObjectID()}
+	principalUser := &model.User{ID: bson.NewObjectID()}
 	principalRepo := &mockUserRepo{user: principalUser}
 	routerPrincipal := setupRouter(principalRepo, svc, model.RolePrincipal)
 
@@ -275,16 +194,14 @@ func TestClassManagementHandler_RBAC_SuperAdminAndPrincipalBlocked(t *testing.T)
 }
 
 func TestClassManagementHandler_FullCRUD_AdminSuccess(t *testing.T) {
-	adminSchoolID := bson.NewObjectID()
 	classID := bson.NewObjectID()
-	adminUser := &model.User{ID: bson.NewObjectID(), SchoolID: adminSchoolID}
+	adminUser := &model.User{ID: bson.NewObjectID()}
 	repoUser := &mockUserRepo{user: adminUser}
 
 	classRepo := &mockClassRepository{}
 	// Preload a class in mock repository
 	classRepo.Create(context.Background(), &model.Class{
 		ID:             classID,
-		SchoolID:       adminSchoolID,
 		AcademicYearID: bson.NewObjectID(),
 		Code:           "7A",
 		Name:           "Kelas 7A",

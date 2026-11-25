@@ -75,7 +75,7 @@ func (s *materialServiceImpl) ListMaterials(ctx context.Context, scope *middlewa
 		page = 1
 	}
 
-	list, total, err := s.repo.FindMaterials(ctx, scope.SchoolID, scope.TeacherID, classID, subjectID, search, page, limit)
+	list, total, err := s.repo.FindMaterials(ctx, scope.TeacherID, classID, subjectID, search, page, limit)
 	if err != nil {
 		return nil, nil, err
 	}
@@ -101,7 +101,7 @@ func (s *materialServiceImpl) ListMaterials(ctx context.Context, scope *middlewa
 		allSubjectIDs = append(allSubjectIDs, sid)
 	}
 
-	classMap, _ := s.repo.FindClassesMap(ctx, scope.SchoolID, allClassIDs)
+	classMap, _ := s.repo.FindClassesMap(ctx, allClassIDs)
 	subjectMap, _ := s.repo.FindSubjectsMap(ctx, allSubjectIDs)
 
 	now := time.Now().UTC()
@@ -159,7 +159,7 @@ func (s *materialServiceImpl) GetMaterialDetail(ctx context.Context, scope *midd
 		return nil, handler.ErrNotFound
 	}
 
-	m, err := s.repo.FindMaterialByID(ctx, scope.SchoolID, scope.TeacherID, id)
+	m, err := s.repo.FindMaterialByID(ctx, scope.TeacherID, id)
 	if err != nil {
 		return nil, err
 	}
@@ -167,7 +167,7 @@ func (s *materialServiceImpl) GetMaterialDetail(ctx context.Context, scope *midd
 		return nil, handler.ErrNotFound
 	}
 
-	classMap, _ := s.repo.FindClassesMap(ctx, scope.SchoolID, m.ClassIDs)
+	classMap, _ := s.repo.FindClassesMap(ctx, m.ClassIDs)
 	subjectMap, _ := s.repo.FindSubjectsMap(ctx, []bson.ObjectID{m.SubjectID})
 
 	subName := ""
@@ -293,7 +293,6 @@ func (s *materialServiceImpl) CreateMaterial(ctx context.Context, scope *middlew
 
 	mat := &model.Material{
 		ID:          bson.NewObjectID(),
-		SchoolID:    scope.SchoolID,
 		TeacherID:   scope.TeacherID,
 		SubjectID:   subjectID,
 		ClassIDs:    classOIDs,
@@ -315,7 +314,7 @@ func (s *materialServiceImpl) CreateMaterial(ctx context.Context, scope *middlew
 
 	// If published, trigger notification
 	if mat.PublishAt != nil && !mat.PublishAt.After(now) && s.notifSvc != nil {
-		_ = s.notifSvc.NotifyClasses(ctx, scope.SchoolID, classOIDs, "new_material", "Materi Baru: "+title, "Materi baru telah diunggah untuk kelas Anda", "material", mat.ID)
+		_ = s.notifSvc.NotifyClasses(ctx, classOIDs, "new_material", "Materi Baru: "+title, "Materi baru telah diunggah untuk kelas Anda", "material", mat.ID)
 	}
 
 	return s.GetMaterialDetail(ctx, scope, mat.ID)
@@ -326,7 +325,7 @@ func (s *materialServiceImpl) UpdateMaterial(ctx context.Context, scope *middlew
 		return nil, handler.ErrUnauthorized
 	}
 
-	mat, err := s.repo.FindMaterialByID(ctx, scope.SchoolID, scope.TeacherID, id)
+	mat, err := s.repo.FindMaterialByID(ctx, scope.TeacherID, id)
 	if err != nil {
 		return nil, err
 	}
@@ -440,7 +439,7 @@ func (s *materialServiceImpl) UpdateMaterial(ctx context.Context, scope *middlew
 	// If newly published, trigger notification
 	isPublishedNow := mat.PublishAt != nil && !mat.PublishAt.After(now)
 	if !wasPublished && isPublishedNow && s.notifSvc != nil {
-		_ = s.notifSvc.NotifyClasses(ctx, scope.SchoolID, mat.ClassIDs, "new_material", "Materi Baru: "+mat.Title, "Materi baru telah diunggah untuk kelas Anda", "material", mat.ID)
+		_ = s.notifSvc.NotifyClasses(ctx, mat.ClassIDs, "new_material", "Materi Baru: "+mat.Title, "Materi baru telah diunggah untuk kelas Anda", "material", mat.ID)
 	}
 
 	return s.GetMaterialDetail(ctx, scope, mat.ID)
@@ -451,7 +450,7 @@ func (s *materialServiceImpl) DeleteMaterial(ctx context.Context, scope *middlew
 		return handler.ErrUnauthorized
 	}
 
-	mat, err := s.repo.FindMaterialByID(ctx, scope.SchoolID, scope.TeacherID, id)
+	mat, err := s.repo.FindMaterialByID(ctx, scope.TeacherID, id)
 	if err != nil {
 		return err
 	}
@@ -460,7 +459,7 @@ func (s *materialServiceImpl) DeleteMaterial(ctx context.Context, scope *middlew
 	}
 
 	// 1. Delete from DB first
-	if err := s.repo.DeleteMaterial(ctx, scope.SchoolID, scope.TeacherID, id); err != nil {
+	if err := s.repo.DeleteMaterial(ctx, scope.TeacherID, id); err != nil {
 		return err
 	}
 
@@ -484,7 +483,7 @@ func (s *materialServiceImpl) GetDownloadURL(ctx context.Context, scope *middlew
 		return "", handler.ErrUnauthorized
 	}
 
-	mat, err := s.repo.FindMaterialByID(ctx, scope.SchoolID, scope.TeacherID, id)
+	mat, err := s.repo.FindMaterialByID(ctx, scope.TeacherID, id)
 	if err != nil {
 		return "", err
 	}

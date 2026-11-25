@@ -13,32 +13,32 @@ import (
 )
 
 type mockAssignmentRepo struct {
-	findAssignmentsFunc    func(ctx context.Context, schoolID, teacherID bson.ObjectID, classID, subjectID *bson.ObjectID, search string, page, limit int64) ([]*model.Assignment, int64, error)
-	findByIDFunc           func(ctx context.Context, schoolID, teacherID, id bson.ObjectID) (*model.Assignment, error)
+	findAssignmentsFunc    func(ctx context.Context, teacherID bson.ObjectID, classID, subjectID *bson.ObjectID, search string, page, limit int64) ([]*model.Assignment, int64, error)
+	findByIDFunc           func(ctx context.Context, teacherID, id bson.ObjectID) (*model.Assignment, error)
 	createFunc             func(ctx context.Context, a *model.Assignment) error
 	updateFunc             func(ctx context.Context, a *model.Assignment) error
-	deleteFunc             func(ctx context.Context, schoolID, teacherID, id bson.ObjectID) error
-	countSubmissionsFunc   func(ctx context.Context, schoolID, assignmentID bson.ObjectID) (int64, error)
-	findSubmissionsFunc    func(ctx context.Context, schoolID, assignmentID bson.ObjectID) ([]*model.AssignmentSubmission, error)
-	findSubmissionByIDFunc func(ctx context.Context, schoolID, submissionID bson.ObjectID) (*model.AssignmentSubmission, error)
-	findStudentsFunc       func(ctx context.Context, schoolID bson.ObjectID, classIDs []bson.ObjectID) ([]*model.Student, error)
-	findStudentByIDFunc    func(ctx context.Context, schoolID, studentID bson.ObjectID) (*model.Student, error)
+	deleteFunc             func(ctx context.Context, teacherID, id bson.ObjectID) error
+	countSubmissionsFunc   func(ctx context.Context, assignmentID bson.ObjectID) (int64, error)
+	findSubmissionsFunc    func(ctx context.Context, assignmentID bson.ObjectID) ([]*model.AssignmentSubmission, error)
+	findSubmissionByIDFunc func(ctx context.Context, submissionID bson.ObjectID) (*model.AssignmentSubmission, error)
+	findStudentsFunc       func(ctx context.Context, classIDs []bson.ObjectID) ([]*model.Student, error)
+	findStudentByIDFunc    func(ctx context.Context, studentID bson.ObjectID) (*model.Student, error)
 	findUsersMapFunc       func(ctx context.Context, userIDs []bson.ObjectID) (map[bson.ObjectID]*model.User, error)
-	findClassesMapFunc     func(ctx context.Context, schoolID bson.ObjectID, classIDs []bson.ObjectID) (map[bson.ObjectID]*model.Class, error)
+	findClassesMapFunc     func(ctx context.Context, classIDs []bson.ObjectID) (map[bson.ObjectID]*model.Class, error)
 	findSubjectsMapFunc    func(ctx context.Context, subjectIDs []bson.ObjectID) (map[bson.ObjectID]*model.Subject, error)
-	gradeInTxFunc          func(ctx context.Context, schoolID, teacherID bson.ObjectID, submission *model.AssignmentSubmission, grade *model.Grade, audit *model.AuditLog) error
+	gradeInTxFunc          func(ctx context.Context, teacherID bson.ObjectID, submission *model.AssignmentSubmission, grade *model.Grade, audit *model.AuditLog) error
 }
 
-func (m *mockAssignmentRepo) FindAssignments(ctx context.Context, schoolID, teacherID bson.ObjectID, classID, subjectID *bson.ObjectID, search string, page, limit int64) ([]*model.Assignment, int64, error) {
+func (m *mockAssignmentRepo) FindAssignments(ctx context.Context, teacherID bson.ObjectID, classID, subjectID *bson.ObjectID, search string, page, limit int64) ([]*model.Assignment, int64, error) {
 	if m.findAssignmentsFunc != nil {
-		return m.findAssignmentsFunc(ctx, schoolID, teacherID, classID, subjectID, search, page, limit)
+		return m.findAssignmentsFunc(ctx, teacherID, classID, subjectID, search, page, limit)
 	}
 	return nil, 0, nil
 }
 
-func (m *mockAssignmentRepo) FindAssignmentByID(ctx context.Context, schoolID, teacherID, id bson.ObjectID) (*model.Assignment, error) {
+func (m *mockAssignmentRepo) FindAssignmentByID(ctx context.Context, teacherID, id bson.ObjectID) (*model.Assignment, error) {
 	if m.findByIDFunc != nil {
-		return m.findByIDFunc(ctx, schoolID, teacherID, id)
+		return m.findByIDFunc(ctx, teacherID, id)
 	}
 	return nil, nil
 }
@@ -57,44 +57,44 @@ func (m *mockAssignmentRepo) UpdateAssignment(ctx context.Context, a *model.Assi
 	return nil
 }
 
-func (m *mockAssignmentRepo) DeleteAssignment(ctx context.Context, schoolID, teacherID, id bson.ObjectID) error {
+func (m *mockAssignmentRepo) DeleteAssignment(ctx context.Context, teacherID, id bson.ObjectID) error {
 	if m.deleteFunc != nil {
-		return m.deleteFunc(ctx, schoolID, teacherID, id)
+		return m.deleteFunc(ctx, teacherID, id)
 	}
 	return nil
 }
 
-func (m *mockAssignmentRepo) CountSubmissionsByAssignmentID(ctx context.Context, schoolID, assignmentID bson.ObjectID) (int64, error) {
+func (m *mockAssignmentRepo) CountSubmissionsByAssignmentID(ctx context.Context, assignmentID bson.ObjectID) (int64, error) {
 	if m.countSubmissionsFunc != nil {
-		return m.countSubmissionsFunc(ctx, schoolID, assignmentID)
+		return m.countSubmissionsFunc(ctx, assignmentID)
 	}
 	return 0, nil
 }
 
-func (m *mockAssignmentRepo) FindSubmissions(ctx context.Context, schoolID, assignmentID bson.ObjectID) ([]*model.AssignmentSubmission, error) {
+func (m *mockAssignmentRepo) FindSubmissions(ctx context.Context, assignmentID bson.ObjectID) ([]*model.AssignmentSubmission, error) {
 	if m.findSubmissionsFunc != nil {
-		return m.findSubmissionsFunc(ctx, schoolID, assignmentID)
+		return m.findSubmissionsFunc(ctx, assignmentID)
 	}
 	return nil, nil
 }
 
-func (m *mockAssignmentRepo) FindSubmissionByID(ctx context.Context, schoolID, submissionID bson.ObjectID) (*model.AssignmentSubmission, error) {
+func (m *mockAssignmentRepo) FindSubmissionByID(ctx context.Context, submissionID bson.ObjectID) (*model.AssignmentSubmission, error) {
 	if m.findSubmissionByIDFunc != nil {
-		return m.findSubmissionByIDFunc(ctx, schoolID, submissionID)
+		return m.findSubmissionByIDFunc(ctx, submissionID)
 	}
 	return nil, nil
 }
 
-func (m *mockAssignmentRepo) FindStudentsByClassIDs(ctx context.Context, schoolID bson.ObjectID, classIDs []bson.ObjectID) ([]*model.Student, error) {
+func (m *mockAssignmentRepo) FindStudentsByClassIDs(ctx context.Context, classIDs []bson.ObjectID) ([]*model.Student, error) {
 	if m.findStudentsFunc != nil {
-		return m.findStudentsFunc(ctx, schoolID, classIDs)
+		return m.findStudentsFunc(ctx, classIDs)
 	}
 	return nil, nil
 }
 
-func (m *mockAssignmentRepo) FindStudentByID(ctx context.Context, schoolID, studentID bson.ObjectID) (*model.Student, error) {
+func (m *mockAssignmentRepo) FindStudentByID(ctx context.Context, studentID bson.ObjectID) (*model.Student, error) {
 	if m.findStudentByIDFunc != nil {
-		return m.findStudentByIDFunc(ctx, schoolID, studentID)
+		return m.findStudentByIDFunc(ctx, studentID)
 	}
 	return nil, nil
 }
@@ -106,9 +106,9 @@ func (m *mockAssignmentRepo) FindUsersMap(ctx context.Context, userIDs []bson.Ob
 	return make(map[bson.ObjectID]*model.User), nil
 }
 
-func (m *mockAssignmentRepo) FindClassesMap(ctx context.Context, schoolID bson.ObjectID, classIDs []bson.ObjectID) (map[bson.ObjectID]*model.Class, error) {
+func (m *mockAssignmentRepo) FindClassesMap(ctx context.Context, classIDs []bson.ObjectID) (map[bson.ObjectID]*model.Class, error) {
 	if m.findClassesMapFunc != nil {
-		return m.findClassesMapFunc(ctx, schoolID, classIDs)
+		return m.findClassesMapFunc(ctx, classIDs)
 	}
 	return make(map[bson.ObjectID]*model.Class), nil
 }
@@ -120,28 +120,26 @@ func (m *mockAssignmentRepo) FindSubjectsMap(ctx context.Context, subjectIDs []b
 	return make(map[bson.ObjectID]*model.Subject), nil
 }
 
-func (m *mockAssignmentRepo) GradeSubmissionInTransaction(ctx context.Context, schoolID, teacherID bson.ObjectID, submission *model.AssignmentSubmission, grade *model.Grade, audit *model.AuditLog) error {
+func (m *mockAssignmentRepo) GradeSubmissionInTransaction(ctx context.Context, teacherID bson.ObjectID, submission *model.AssignmentSubmission, grade *model.Grade, audit *model.AuditLog) error {
 	if m.gradeInTxFunc != nil {
-		return m.gradeInTxFunc(ctx, schoolID, teacherID, submission, grade, audit)
+		return m.gradeInTxFunc(ctx, teacherID, submission, grade, audit)
 	}
 	return nil
 }
 
 func TestAssignmentService_Delete_ConflictWhenHasSubmissions(t *testing.T) {
-	schoolID := bson.NewObjectID()
 	teacherID := bson.NewObjectID()
 	asgID := bson.NewObjectID()
 
 	scope := &middleware.TeacherScope{
-		SchoolID:  schoolID,
 		TeacherID: teacherID,
 	}
 
 	repo := &mockAssignmentRepo{
-		findByIDFunc: func(ctx context.Context, sID, tID, id bson.ObjectID) (*model.Assignment, error) {
-			return &model.Assignment{ID: asgID, SchoolID: schoolID, TeacherID: teacherID}, nil
+		findByIDFunc: func(ctx context.Context, tID, id bson.ObjectID) (*model.Assignment, error) {
+			return &model.Assignment{ID: asgID, TeacherID: teacherID}, nil
 		},
-		countSubmissionsFunc: func(ctx context.Context, sID, aID bson.ObjectID) (int64, error) {
+		countSubmissionsFunc: func(ctx context.Context, aID bson.ObjectID) (int64, error) {
 			return 3, nil // Has 3 submissions!
 		},
 	}
@@ -159,7 +157,7 @@ func TestAssignmentService_Delete_ConflictWhenHasSubmissions(t *testing.T) {
 }
 
 func TestAssignmentService_GradeSubmission_Success(t *testing.T) {
-	schoolID := bson.NewObjectID()
+
 	teacherID := bson.NewObjectID()
 	asgID := bson.NewObjectID()
 	subID := bson.NewObjectID()
@@ -169,7 +167,6 @@ func TestAssignmentService_GradeSubmission_Success(t *testing.T) {
 	academicYearID := bson.NewObjectID()
 
 	scope := &middleware.TeacherScope{
-		SchoolID:       schoolID,
 		TeacherID:      teacherID,
 		AcademicYearID: academicYearID,
 		Semester:       1,
@@ -178,33 +175,31 @@ func TestAssignmentService_GradeSubmission_Success(t *testing.T) {
 	var gradedTxCalled bool
 	var savedGrade *model.Grade
 	repo := &mockAssignmentRepo{
-		findByIDFunc: func(ctx context.Context, sID, tID, id bson.ObjectID) (*model.Assignment, error) {
+		findByIDFunc: func(ctx context.Context, tID, id bson.ObjectID) (*model.Assignment, error) {
 			return &model.Assignment{
-				ID:        asgID,
-				SchoolID:  schoolID,
+				ID: asgID,
+
 				TeacherID: teacherID,
 				SubjectID: subjectID,
 				Title:     "Tugas 1",
 			}, nil
 		},
-		findSubmissionByIDFunc: func(ctx context.Context, sID, id bson.ObjectID) (*model.AssignmentSubmission, error) {
+		findSubmissionByIDFunc: func(ctx context.Context, id bson.ObjectID) (*model.AssignmentSubmission, error) {
 			return &model.AssignmentSubmission{
 				ID:           subID,
 				AssignmentID: asgID,
 				StudentID:    studentID,
-				SchoolID:     schoolID,
 				Version:      1,
 			}, nil
 		},
-		findStudentByIDFunc: func(ctx context.Context, sID, id bson.ObjectID) (*model.Student, error) {
+		findStudentByIDFunc: func(ctx context.Context, id bson.ObjectID) (*model.Student, error) {
 			return &model.Student{
-				ID:       studentID,
-				ClassID:  classID,
-				SchoolID: schoolID,
-				UserID:   bson.NewObjectID(),
+				ID:      studentID,
+				ClassID: classID,
+				UserID:  bson.NewObjectID(),
 			}, nil
 		},
-		gradeInTxFunc: func(ctx context.Context, sID, tID bson.ObjectID, submission *model.AssignmentSubmission, grade *model.Grade, audit *model.AuditLog) error {
+		gradeInTxFunc: func(ctx context.Context, tID bson.ObjectID, submission *model.AssignmentSubmission, grade *model.Grade, audit *model.AuditLog) error {
 			gradedTxCalled = true
 			savedGrade = grade
 			if *submission.Score != 85.0 {
@@ -229,7 +224,7 @@ func TestAssignmentService_GradeSubmission_Success(t *testing.T) {
 }
 
 func TestAssignmentService_ListSubmissions_StatusFilter(t *testing.T) {
-	schoolID := bson.NewObjectID()
+
 	teacherID := bson.NewObjectID()
 	asgID := bson.NewObjectID()
 	classID := bson.NewObjectID()
@@ -237,7 +232,6 @@ func TestAssignmentService_ListSubmissions_StatusFilter(t *testing.T) {
 	st2 := bson.NewObjectID()
 
 	scope := &middleware.TeacherScope{
-		SchoolID:  schoolID,
 		TeacherID: teacherID,
 	}
 
@@ -245,22 +239,22 @@ func TestAssignmentService_ListSubmissions_StatusFilter(t *testing.T) {
 	score := 90.0
 
 	repo := &mockAssignmentRepo{
-		findByIDFunc: func(ctx context.Context, sID, tID, id bson.ObjectID) (*model.Assignment, error) {
+		findByIDFunc: func(ctx context.Context, tID, id bson.ObjectID) (*model.Assignment, error) {
 			return &model.Assignment{
-				ID:        asgID,
-				SchoolID:  schoolID,
+				ID: asgID,
+
 				TeacherID: teacherID,
 				ClassIDs:  []bson.ObjectID{classID},
 				Deadline:  deadline,
 			}, nil
 		},
-		findStudentsFunc: func(ctx context.Context, sID bson.ObjectID, cIDs []bson.ObjectID) ([]*model.Student, error) {
+		findStudentsFunc: func(ctx context.Context, cIDs []bson.ObjectID) ([]*model.Student, error) {
 			return []*model.Student{
 				{ID: st1, ClassID: classID, NIS: "101"},
 				{ID: st2, ClassID: classID, NIS: "102"},
 			}, nil
 		},
-		findSubmissionsFunc: func(ctx context.Context, sID, aID bson.ObjectID) ([]*model.AssignmentSubmission, error) {
+		findSubmissionsFunc: func(ctx context.Context, aID bson.ObjectID) ([]*model.AssignmentSubmission, error) {
 			now := time.Now()
 			return []*model.AssignmentSubmission{
 				{

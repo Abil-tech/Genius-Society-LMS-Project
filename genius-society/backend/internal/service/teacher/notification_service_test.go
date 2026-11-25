@@ -15,7 +15,7 @@ type mockNotificationRepo struct {
 	countUnreadFunc  func(ctx context.Context, userID bson.ObjectID) (int64, error)
 	markReadFunc     func(ctx context.Context, userID, notifID bson.ObjectID) error
 	markAllReadFunc  func(ctx context.Context, userID bson.ObjectID) error
-	findStudentsFunc func(ctx context.Context, schoolID bson.ObjectID, classIDs []bson.ObjectID) ([]bson.ObjectID, error)
+	findStudentsFunc func(ctx context.Context, classIDs []bson.ObjectID) ([]bson.ObjectID, error)
 	insertManyFunc   func(ctx context.Context, notifs []*model.Notification) error
 }
 
@@ -47,9 +47,9 @@ func (m *mockNotificationRepo) MarkAllRead(ctx context.Context, userID bson.Obje
 	return nil
 }
 
-func (m *mockNotificationRepo) FindActiveStudentUserIDsByClassIDs(ctx context.Context, schoolID bson.ObjectID, classIDs []bson.ObjectID) ([]bson.ObjectID, error) {
+func (m *mockNotificationRepo) FindActiveStudentUserIDsByClassIDs(ctx context.Context, classIDs []bson.ObjectID) ([]bson.ObjectID, error) {
 	if m.findStudentsFunc != nil {
-		return m.findStudentsFunc(ctx, schoolID, classIDs)
+		return m.findStudentsFunc(ctx, classIDs)
 	}
 	return nil, nil
 }
@@ -138,7 +138,7 @@ func TestNotificationService_MarkAsRead_NotFound(t *testing.T) {
 }
 
 func TestNotificationService_NotifyClasses(t *testing.T) {
-	schoolID := bson.NewObjectID()
+
 	class1 := bson.NewObjectID()
 	studentUser1 := bson.NewObjectID()
 	studentUser2 := bson.NewObjectID()
@@ -146,7 +146,7 @@ func TestNotificationService_NotifyClasses(t *testing.T) {
 
 	var insertedCount int
 	repo := &mockNotificationRepo{
-		findStudentsFunc: func(ctx context.Context, sID bson.ObjectID, cIDs []bson.ObjectID) ([]bson.ObjectID, error) {
+		findStudentsFunc: func(ctx context.Context, cIDs []bson.ObjectID) ([]bson.ObjectID, error) {
 			return []bson.ObjectID{studentUser1, studentUser2}, nil
 		},
 		insertManyFunc: func(ctx context.Context, notifs []*model.Notification) error {
@@ -156,7 +156,7 @@ func TestNotificationService_NotifyClasses(t *testing.T) {
 	}
 
 	svc := NewNotificationService(repo)
-	err := svc.NotifyClasses(context.Background(), schoolID, []bson.ObjectID{class1}, "new_assignment", "Tugas Baru", "Kerjakan tugas 1", "assignment", refID)
+	err := svc.NotifyClasses(context.Background(), []bson.ObjectID{class1}, "new_assignment", "Tugas Baru", "Kerjakan tugas 1", "assignment", refID)
 	if err != nil {
 		t.Fatalf("unexpected error: %v", err)
 	}

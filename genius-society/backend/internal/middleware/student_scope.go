@@ -16,7 +16,6 @@ const (
 
 // StudentScope holds the authenticated student's academic context.
 type StudentScope struct {
-	SchoolID       bson.ObjectID
 	StudentID      bson.ObjectID
 	UserID         bson.ObjectID
 	ClassID        bson.ObjectID
@@ -28,8 +27,8 @@ type StudentScope struct {
 type StudentScopeRepository interface {
 	FindUserByID(ctx context.Context, id bson.ObjectID) (*model.User, error)
 	FindStudentByUserID(ctx context.Context, userID bson.ObjectID) (*model.Student, error)
-	FindActiveAcademicYear(ctx context.Context, schoolID bson.ObjectID) (*model.AcademicYear, error)
-	FindActiveEnrollment(ctx context.Context, schoolID, studentID, academicYearID bson.ObjectID) (*model.StudentEnrollment, error)
+	FindActiveAcademicYear(ctx context.Context) (*model.AcademicYear, error)
+	FindActiveEnrollment(ctx context.Context, studentID, academicYearID bson.ObjectID) (*model.StudentEnrollment, error)
 }
 
 // StudentScopeMiddleware enforces student permissions and attaches StudentScope to the gin context.
@@ -94,17 +93,6 @@ func StudentScopeMiddleware(repo StudentScopeRepository) gin.HandlerFunc {
 			return
 		}
 
-		if usr.SchoolID.IsZero() {
-			c.AbortWithStatusJSON(http.StatusForbidden, dto.ErrorResponse{
-				Success: false,
-				Error: dto.ErrorBody{
-					Code:    "FORBIDDEN",
-					Message: "Pengguna tidak terdaftar pada sekolah manapun",
-				},
-			})
-			return
-		}
-
 		student, err := repo.FindStudentByUserID(ctx, uid)
 		if err != nil {
 			c.AbortWithStatusJSON(http.StatusInternalServerError, dto.ErrorResponse{
@@ -127,7 +115,7 @@ func StudentScopeMiddleware(repo StudentScopeRepository) gin.HandlerFunc {
 			return
 		}
 
-		ay, err := repo.FindActiveAcademicYear(ctx, usr.SchoolID)
+		ay, err := repo.FindActiveAcademicYear(ctx)
 		if err != nil {
 			c.AbortWithStatusJSON(http.StatusInternalServerError, dto.ErrorResponse{
 				Success: false,
@@ -151,7 +139,7 @@ func StudentScopeMiddleware(repo StudentScopeRepository) gin.HandlerFunc {
 
 		// Determine ClassID: from active enrollment or fallback to student.ClassID
 		classID := student.ClassID
-		enrollment, err := repo.FindActiveEnrollment(ctx, usr.SchoolID, student.ID, ay.ID)
+		enrollment, err := repo.FindActiveEnrollment(ctx, student.ID, ay.ID)
 		if err == nil && enrollment != nil && !enrollment.ClassID.IsZero() {
 			classID = enrollment.ClassID
 		}
@@ -168,7 +156,6 @@ func StudentScopeMiddleware(repo StudentScopeRepository) gin.HandlerFunc {
 		}
 
 		scope := &StudentScope{
-			SchoolID:       usr.SchoolID,
 			StudentID:      student.ID,
 			UserID:         usr.ID,
 			ClassID:        classID,
@@ -178,7 +165,6 @@ func StudentScopeMiddleware(repo StudentScopeRepository) gin.HandlerFunc {
 
 		c.Set(ContextKeyStudentScope, scope)
 		c.Set("studentID", student.ID.Hex())
-		c.Set("schoolID", usr.SchoolID.Hex())
 
 		c.Next()
 	}

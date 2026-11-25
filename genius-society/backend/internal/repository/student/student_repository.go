@@ -15,47 +15,47 @@ type StudentRepository interface {
 	// Scope & Profile
 	FindUserByID(ctx context.Context, id bson.ObjectID) (*model.User, error)
 	FindStudentByUserID(ctx context.Context, userID bson.ObjectID) (*model.Student, error)
-	FindActiveAcademicYear(ctx context.Context, schoolID bson.ObjectID) (*model.AcademicYear, error)
-	FindActiveEnrollment(ctx context.Context, schoolID, studentID, academicYearID bson.ObjectID) (*model.StudentEnrollment, error)
+	FindActiveAcademicYear(ctx context.Context, ) (*model.AcademicYear, error)
+	FindActiveEnrollment(ctx context.Context, studentID, academicYearID bson.ObjectID) (*model.StudentEnrollment, error)
 	FindClassByID(ctx context.Context, classID bson.ObjectID) (*model.Class, error)
 
 	// Materials
-	FindMaterialsByClass(ctx context.Context, schoolID, classID bson.ObjectID, subjectID *bson.ObjectID, now time.Time) ([]model.Material, error)
-	FindMaterialByID(ctx context.Context, schoolID, materialID bson.ObjectID) (*model.Material, error)
+	FindMaterialsByClass(ctx context.Context, classID bson.ObjectID, subjectID *bson.ObjectID, now time.Time) ([]model.Material, error)
+	FindMaterialByID(ctx context.Context, materialID bson.ObjectID) (*model.Material, error)
 
 	// Assignments
-	FindAssignmentsByClass(ctx context.Context, schoolID, classID bson.ObjectID, subjectID *bson.ObjectID) ([]model.Assignment, error)
-	FindAssignmentByID(ctx context.Context, schoolID, assignmentID bson.ObjectID) (*model.Assignment, error)
-	FindAssignmentSubmissions(ctx context.Context, schoolID, assignmentID, studentID bson.ObjectID) ([]model.AssignmentSubmission, error)
-	FindLatestAssignmentSubmission(ctx context.Context, schoolID, assignmentID, studentID bson.ObjectID) (*model.AssignmentSubmission, error)
+	FindAssignmentsByClass(ctx context.Context, classID bson.ObjectID, subjectID *bson.ObjectID) ([]model.Assignment, error)
+	FindAssignmentByID(ctx context.Context, assignmentID bson.ObjectID) (*model.Assignment, error)
+	FindAssignmentSubmissions(ctx context.Context, assignmentID, studentID bson.ObjectID) ([]model.AssignmentSubmission, error)
+	FindLatestAssignmentSubmission(ctx context.Context, assignmentID, studentID bson.ObjectID) (*model.AssignmentSubmission, error)
 	InsertAssignmentSubmission(ctx context.Context, sub *model.AssignmentSubmission) error
 	UpdateAssignmentSubmission(ctx context.Context, sub *model.AssignmentSubmission) error
 
 	// Projects
-	FindProjectsByClass(ctx context.Context, schoolID, classID bson.ObjectID, subjectID *bson.ObjectID) ([]model.Project, error)
-	FindProjectByID(ctx context.Context, schoolID, projectID bson.ObjectID) (*model.Project, error)
-	FindProjectSubmissions(ctx context.Context, schoolID, projectID, studentID bson.ObjectID) ([]model.ProjectSubmission, error)
-	FindLatestProjectSubmission(ctx context.Context, schoolID, projectID, studentID bson.ObjectID) (*model.ProjectSubmission, error)
+	FindProjectsByClass(ctx context.Context, classID bson.ObjectID, subjectID *bson.ObjectID) ([]model.Project, error)
+	FindProjectByID(ctx context.Context, projectID bson.ObjectID) (*model.Project, error)
+	FindProjectSubmissions(ctx context.Context, projectID, studentID bson.ObjectID) ([]model.ProjectSubmission, error)
+	FindLatestProjectSubmission(ctx context.Context, projectID, studentID bson.ObjectID) (*model.ProjectSubmission, error)
 	InsertProjectSubmission(ctx context.Context, sub *model.ProjectSubmission) error
 	UpdateProjectSubmission(ctx context.Context, sub *model.ProjectSubmission) error
 
 	// Assessments
-	FindAssessmentsByClass(ctx context.Context, schoolID, classID bson.ObjectID, subjectID *bson.ObjectID) ([]model.Assessment, error)
-	FindAssessmentByID(ctx context.Context, schoolID, assessmentID bson.ObjectID) (*model.Assessment, error)
+	FindAssessmentsByClass(ctx context.Context, classID bson.ObjectID, subjectID *bson.ObjectID) ([]model.Assessment, error)
+	FindAssessmentByID(ctx context.Context, assessmentID bson.ObjectID) (*model.Assessment, error)
 	FindQuestionsByAssessmentID(ctx context.Context, assessmentID bson.ObjectID) ([]model.AssessmentQuestion, error)
-	FindAttemptByStudent(ctx context.Context, schoolID, assessmentID, studentID bson.ObjectID) (*model.AssessmentAttempt, error)
+	FindAttemptByStudent(ctx context.Context, assessmentID, studentID bson.ObjectID) (*model.AssessmentAttempt, error)
 	InsertAttempt(ctx context.Context, attempt *model.AssessmentAttempt) error
 	UpdateAttempt(ctx context.Context, attempt *model.AssessmentAttempt) error
 	FindAnswersByAttemptID(ctx context.Context, attemptID bson.ObjectID) ([]model.AssessmentAnswer, error)
 	SaveAnswer(ctx context.Context, answer *model.AssessmentAnswer) error
 
 	// Grades & Config
-	FindGradesByStudent(ctx context.Context, schoolID, studentID, academicYearID bson.ObjectID) ([]model.Grade, error)
-	FindGradingConfig(ctx context.Context, schoolID, academicYearID bson.ObjectID, subjectID *bson.ObjectID) (*model.GradingConfig, error)
-	FindClassStudents(ctx context.Context, schoolID, classID bson.ObjectID) ([]model.Student, error)
+	FindGradesByStudent(ctx context.Context, studentID, academicYearID bson.ObjectID) ([]model.Grade, error)
+	FindGradingConfig(ctx context.Context, academicYearID bson.ObjectID, subjectID *bson.ObjectID) (*model.GradingConfig, error)
+	FindClassStudents(ctx context.Context, classID bson.ObjectID) ([]model.Student, error)
 
 	// Schedules
-	FindSchedulesByClass(ctx context.Context, schoolID, classID, academicYearID bson.ObjectID) ([]model.Schedule, error)
+	FindSchedulesByClass(ctx context.Context, classID, academicYearID bson.ObjectID) ([]model.Schedule, error)
 
 	// Auxiliary maps
 	FindSubjectsMap(ctx context.Context, subjectIDs []bson.ObjectID) (map[bson.ObjectID]*model.Subject, error)
@@ -99,10 +99,10 @@ func (r *studentRepoImpl) FindStudentByUserID(ctx context.Context, userID bson.O
 }
 
 // FindActiveAcademicYear finds active academic year for a school.
-func (r *studentRepoImpl) FindActiveAcademicYear(ctx context.Context, schoolID bson.ObjectID) (*model.AcademicYear, error) {
+func (r *studentRepoImpl) FindActiveAcademicYear(ctx context.Context, ) (*model.AcademicYear, error) {
 	var ay model.AcademicYear
 	err := r.db.Collection("academic_years").FindOne(ctx, bson.M{
-		"schoolId": schoolID,
+		
 		"isActive": true,
 	}).Decode(&ay)
 	if err != nil {
@@ -115,10 +115,10 @@ func (r *studentRepoImpl) FindActiveAcademicYear(ctx context.Context, schoolID b
 }
 
 // FindActiveEnrollment finds enrollment with status "active".
-func (r *studentRepoImpl) FindActiveEnrollment(ctx context.Context, schoolID, studentID, academicYearID bson.ObjectID) (*model.StudentEnrollment, error) {
+func (r *studentRepoImpl) FindActiveEnrollment(ctx context.Context, studentID, academicYearID bson.ObjectID) (*model.StudentEnrollment, error) {
 	var en model.StudentEnrollment
 	err := r.db.Collection("enrollments").FindOne(ctx, bson.M{
-		"schoolId":       schoolID,
+		
 		"studentId":      studentID,
 		"academicYearId": academicYearID,
 		"status":         model.EnrollmentStatusActive,
@@ -146,9 +146,9 @@ func (r *studentRepoImpl) FindClassByID(ctx context.Context, classID bson.Object
 }
 
 // FindMaterialsByClass retrieves materials targeting the given class and published <= now.
-func (r *studentRepoImpl) FindMaterialsByClass(ctx context.Context, schoolID, classID bson.ObjectID, subjectID *bson.ObjectID, now time.Time) ([]model.Material, error) {
+func (r *studentRepoImpl) FindMaterialsByClass(ctx context.Context, classID bson.ObjectID, subjectID *bson.ObjectID, now time.Time) ([]model.Material, error) {
 	filter := bson.M{
-		"schoolId": schoolID,
+		
 		"classIds": classID,
 		"$or": []bson.M{
 			{"publishAt": bson.M{"$lte": now}},
@@ -175,11 +175,11 @@ func (r *studentRepoImpl) FindMaterialsByClass(ctx context.Context, schoolID, cl
 }
 
 // FindMaterialByID finds material by ID and school.
-func (r *studentRepoImpl) FindMaterialByID(ctx context.Context, schoolID, materialID bson.ObjectID) (*model.Material, error) {
+func (r *studentRepoImpl) FindMaterialByID(ctx context.Context, materialID bson.ObjectID) (*model.Material, error) {
 	var m model.Material
 	err := r.db.Collection("materials").FindOne(ctx, bson.M{
 		"_id":      materialID,
-		"schoolId": schoolID,
+		
 	}).Decode(&m)
 	if err != nil {
 		if err == mongo.ErrNoDocuments {
@@ -191,9 +191,9 @@ func (r *studentRepoImpl) FindMaterialByID(ctx context.Context, schoolID, materi
 }
 
 // FindAssignmentsByClass retrieves assignments targeting student's class.
-func (r *studentRepoImpl) FindAssignmentsByClass(ctx context.Context, schoolID, classID bson.ObjectID, subjectID *bson.ObjectID) ([]model.Assignment, error) {
+func (r *studentRepoImpl) FindAssignmentsByClass(ctx context.Context, classID bson.ObjectID, subjectID *bson.ObjectID) ([]model.Assignment, error) {
 	filter := bson.M{
-		"schoolId": schoolID,
+		
 		"classIds": classID,
 	}
 	if subjectID != nil && !subjectID.IsZero() {
@@ -215,11 +215,11 @@ func (r *studentRepoImpl) FindAssignmentsByClass(ctx context.Context, schoolID, 
 }
 
 // FindAssignmentByID finds an assignment by ID.
-func (r *studentRepoImpl) FindAssignmentByID(ctx context.Context, schoolID, assignmentID bson.ObjectID) (*model.Assignment, error) {
+func (r *studentRepoImpl) FindAssignmentByID(ctx context.Context, assignmentID bson.ObjectID) (*model.Assignment, error) {
 	var a model.Assignment
 	err := r.db.Collection("assignments").FindOne(ctx, bson.M{
 		"_id":      assignmentID,
-		"schoolId": schoolID,
+		
 	}).Decode(&a)
 	if err != nil {
 		if err == mongo.ErrNoDocuments {
@@ -231,9 +231,9 @@ func (r *studentRepoImpl) FindAssignmentByID(ctx context.Context, schoolID, assi
 }
 
 // FindAssignmentSubmissions finds all submissions for a student on an assignment.
-func (r *studentRepoImpl) FindAssignmentSubmissions(ctx context.Context, schoolID, assignmentID, studentID bson.ObjectID) ([]model.AssignmentSubmission, error) {
+func (r *studentRepoImpl) FindAssignmentSubmissions(ctx context.Context, assignmentID, studentID bson.ObjectID) ([]model.AssignmentSubmission, error) {
 	filter := bson.M{
-		"schoolId":     schoolID,
+		
 		"assignmentId": assignmentID,
 		"studentId":    studentID,
 	}
@@ -252,9 +252,9 @@ func (r *studentRepoImpl) FindAssignmentSubmissions(ctx context.Context, schoolI
 }
 
 // FindLatestAssignmentSubmission gets the latest version submission for a student.
-func (r *studentRepoImpl) FindLatestAssignmentSubmission(ctx context.Context, schoolID, assignmentID, studentID bson.ObjectID) (*model.AssignmentSubmission, error) {
+func (r *studentRepoImpl) FindLatestAssignmentSubmission(ctx context.Context, assignmentID, studentID bson.ObjectID) (*model.AssignmentSubmission, error) {
 	filter := bson.M{
-		"schoolId":     schoolID,
+		
 		"assignmentId": assignmentID,
 		"studentId":    studentID,
 	}
@@ -291,9 +291,9 @@ func (r *studentRepoImpl) UpdateAssignmentSubmission(ctx context.Context, sub *m
 }
 
 // FindProjectsByClass retrieves projects targeting student's class.
-func (r *studentRepoImpl) FindProjectsByClass(ctx context.Context, schoolID, classID bson.ObjectID, subjectID *bson.ObjectID) ([]model.Project, error) {
+func (r *studentRepoImpl) FindProjectsByClass(ctx context.Context, classID bson.ObjectID, subjectID *bson.ObjectID) ([]model.Project, error) {
 	filter := bson.M{
-		"schoolId": schoolID,
+		
 		"classIds": classID,
 	}
 	if subjectID != nil && !subjectID.IsZero() {
@@ -315,11 +315,11 @@ func (r *studentRepoImpl) FindProjectsByClass(ctx context.Context, schoolID, cla
 }
 
 // FindProjectByID finds a project by ID.
-func (r *studentRepoImpl) FindProjectByID(ctx context.Context, schoolID, projectID bson.ObjectID) (*model.Project, error) {
+func (r *studentRepoImpl) FindProjectByID(ctx context.Context, projectID bson.ObjectID) (*model.Project, error) {
 	var p model.Project
 	err := r.db.Collection("projects").FindOne(ctx, bson.M{
 		"_id":      projectID,
-		"schoolId": schoolID,
+		
 	}).Decode(&p)
 	if err != nil {
 		if err == mongo.ErrNoDocuments {
@@ -331,9 +331,9 @@ func (r *studentRepoImpl) FindProjectByID(ctx context.Context, schoolID, project
 }
 
 // FindProjectSubmissions finds all submissions for a student on a project.
-func (r *studentRepoImpl) FindProjectSubmissions(ctx context.Context, schoolID, projectID, studentID bson.ObjectID) ([]model.ProjectSubmission, error) {
+func (r *studentRepoImpl) FindProjectSubmissions(ctx context.Context, projectID, studentID bson.ObjectID) ([]model.ProjectSubmission, error) {
 	filter := bson.M{
-		"schoolId":  schoolID,
+		
 		"projectId": projectID,
 		"studentId": studentID,
 	}
@@ -352,9 +352,9 @@ func (r *studentRepoImpl) FindProjectSubmissions(ctx context.Context, schoolID, 
 }
 
 // FindLatestProjectSubmission retrieves latest submission for a project.
-func (r *studentRepoImpl) FindLatestProjectSubmission(ctx context.Context, schoolID, projectID, studentID bson.ObjectID) (*model.ProjectSubmission, error) {
+func (r *studentRepoImpl) FindLatestProjectSubmission(ctx context.Context, projectID, studentID bson.ObjectID) (*model.ProjectSubmission, error) {
 	filter := bson.M{
-		"schoolId":  schoolID,
+		
 		"projectId": projectID,
 		"studentId": studentID,
 	}
@@ -391,9 +391,9 @@ func (r *studentRepoImpl) UpdateProjectSubmission(ctx context.Context, sub *mode
 }
 
 // FindAssessmentsByClass retrieves published or closed assessments for the class.
-func (r *studentRepoImpl) FindAssessmentsByClass(ctx context.Context, schoolID, classID bson.ObjectID, subjectID *bson.ObjectID) ([]model.Assessment, error) {
+func (r *studentRepoImpl) FindAssessmentsByClass(ctx context.Context, classID bson.ObjectID, subjectID *bson.ObjectID) ([]model.Assessment, error) {
 	filter := bson.M{
-		"schoolId": schoolID,
+		
 		"classIds": classID,
 		"status":   bson.M{"$in": []model.AssessmentStatus{model.AssessmentPublished, model.AssessmentClosed}},
 	}
@@ -416,11 +416,11 @@ func (r *studentRepoImpl) FindAssessmentsByClass(ctx context.Context, schoolID, 
 }
 
 // FindAssessmentByID finds an assessment by ID.
-func (r *studentRepoImpl) FindAssessmentByID(ctx context.Context, schoolID, assessmentID bson.ObjectID) (*model.Assessment, error) {
+func (r *studentRepoImpl) FindAssessmentByID(ctx context.Context, assessmentID bson.ObjectID) (*model.Assessment, error) {
 	var a model.Assessment
 	err := r.db.Collection("assessments").FindOne(ctx, bson.M{
 		"_id":      assessmentID,
-		"schoolId": schoolID,
+		
 	}).Decode(&a)
 	if err != nil {
 		if err == mongo.ErrNoDocuments {
@@ -448,10 +448,10 @@ func (r *studentRepoImpl) FindQuestionsByAssessmentID(ctx context.Context, asses
 }
 
 // FindAttemptByStudent finds existing student attempt on an assessment.
-func (r *studentRepoImpl) FindAttemptByStudent(ctx context.Context, schoolID, assessmentID, studentID bson.ObjectID) (*model.AssessmentAttempt, error) {
+func (r *studentRepoImpl) FindAttemptByStudent(ctx context.Context, assessmentID, studentID bson.ObjectID) (*model.AssessmentAttempt, error) {
 	var att model.AssessmentAttempt
 	err := r.db.Collection("assessment_attempts").FindOne(ctx, bson.M{
-		"schoolId":     schoolID,
+		
 		"assessmentId": assessmentID,
 		"studentId":    studentID,
 	}).Decode(&att)
@@ -522,9 +522,9 @@ func (r *studentRepoImpl) SaveAnswer(ctx context.Context, answer *model.Assessme
 }
 
 // FindGradesByStudent fetches all grade entries for the student in current academic year.
-func (r *studentRepoImpl) FindGradesByStudent(ctx context.Context, schoolID, studentID, academicYearID bson.ObjectID) ([]model.Grade, error) {
+func (r *studentRepoImpl) FindGradesByStudent(ctx context.Context, studentID, academicYearID bson.ObjectID) ([]model.Grade, error) {
 	filter := bson.M{
-		"schoolId":       schoolID,
+		
 		"studentId":      studentID,
 		"academicYearId": academicYearID,
 	}
@@ -542,11 +542,11 @@ func (r *studentRepoImpl) FindGradesByStudent(ctx context.Context, schoolID, stu
 }
 
 // FindGradingConfig finds grading config for subject or fallback to school/ay default.
-func (r *studentRepoImpl) FindGradingConfig(ctx context.Context, schoolID, academicYearID bson.ObjectID, subjectID *bson.ObjectID) (*model.GradingConfig, error) {
+func (r *studentRepoImpl) FindGradingConfig(ctx context.Context, academicYearID bson.ObjectID, subjectID *bson.ObjectID) (*model.GradingConfig, error) {
 	if subjectID != nil && !subjectID.IsZero() {
 		var cfg model.GradingConfig
 		err := r.db.Collection("grading_configs").FindOne(ctx, bson.M{
-			"schoolId":       schoolID,
+			
 			"academicYearId": academicYearID,
 			"subjectId":      *subjectID,
 		}).Decode(&cfg)
@@ -557,7 +557,7 @@ func (r *studentRepoImpl) FindGradingConfig(ctx context.Context, schoolID, acade
 
 	var globalCfg model.GradingConfig
 	err := r.db.Collection("grading_configs").FindOne(ctx, bson.M{
-		"schoolId":       schoolID,
+		
 		"academicYearId": academicYearID,
 		"$or": []bson.M{
 			{"subjectId": nil},
@@ -574,9 +574,9 @@ func (r *studentRepoImpl) FindGradingConfig(ctx context.Context, schoolID, acade
 }
 
 // FindClassStudents returns all active students enrolled in class.
-func (r *studentRepoImpl) FindClassStudents(ctx context.Context, schoolID, classID bson.ObjectID) ([]model.Student, error) {
+func (r *studentRepoImpl) FindClassStudents(ctx context.Context, classID bson.ObjectID) ([]model.Student, error) {
 	filter := bson.M{
-		"schoolId": schoolID,
+		
 		"classId":  classID,
 		"status":   "active",
 	}
@@ -594,9 +594,9 @@ func (r *studentRepoImpl) FindClassStudents(ctx context.Context, schoolID, class
 }
 
 // FindSchedulesByClass returns class schedules sorted by day and startTime.
-func (r *studentRepoImpl) FindSchedulesByClass(ctx context.Context, schoolID, classID, academicYearID bson.ObjectID) ([]model.Schedule, error) {
+func (r *studentRepoImpl) FindSchedulesByClass(ctx context.Context, classID, academicYearID bson.ObjectID) ([]model.Schedule, error) {
 	filter := bson.M{
-		"schoolId":       schoolID,
+		
 		"classId":        classID,
 		"academicYearId": academicYearID,
 	}

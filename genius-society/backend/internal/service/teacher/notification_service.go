@@ -20,7 +20,7 @@ type NotificationService interface {
 	GetUnreadCount(ctx context.Context, userID bson.ObjectID) (*teacherdto.UnreadCountDTO, error)
 	MarkAsRead(ctx context.Context, userID, notifID bson.ObjectID) error
 	MarkAllAsRead(ctx context.Context, userID bson.ObjectID) error
-	NotifyClasses(ctx context.Context, schoolID bson.ObjectID, classIDs []bson.ObjectID, notifType, title, body, refType string, refID bson.ObjectID) error
+	NotifyClasses(ctx context.Context, classIDs []bson.ObjectID, notifType, title, body, refType string, refID bson.ObjectID) error
 }
 
 type notificationServiceImpl struct {
@@ -106,12 +106,12 @@ func (s *notificationServiceImpl) MarkAllAsRead(ctx context.Context, userID bson
 	return s.repo.MarkAllRead(ctx, userID)
 }
 
-func (s *notificationServiceImpl) NotifyClasses(ctx context.Context, schoolID bson.ObjectID, classIDs []bson.ObjectID, notifType, title, body, refType string, refID bson.ObjectID) error {
+func (s *notificationServiceImpl) NotifyClasses(ctx context.Context, classIDs []bson.ObjectID, notifType, title, body, refType string, refID bson.ObjectID) error {
 	if len(classIDs) == 0 {
 		return nil
 	}
 
-	studentUserIDs, err := s.repo.FindActiveStudentUserIDsByClassIDs(ctx, schoolID, classIDs)
+	studentUserIDs, err := s.repo.FindActiveStudentUserIDsByClassIDs(ctx, classIDs)
 	if err != nil {
 		return err
 	}
@@ -125,7 +125,6 @@ func (s *notificationServiceImpl) NotifyClasses(ctx context.Context, schoolID bs
 	for _, uid := range studentUserIDs {
 		notifs = append(notifs, &model.Notification{
 			ID:        bson.NewObjectID(),
-			SchoolID:  schoolID,
 			UserID:    uid,
 			Type:      notifType,
 			Title:     title,

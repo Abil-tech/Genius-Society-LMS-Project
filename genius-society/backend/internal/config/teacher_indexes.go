@@ -66,24 +66,22 @@ func EnsureTeacherIndexes(ctx context.Context, db *mongo.Database) error {
 				Options: options.Index().SetUnique(true),
 			},
 		},
-		// grading_configs: unique {schoolId, academicYearId, subjectId}
+		// grading_configs: unique {academicYearId, subjectId}
 		{
 			collection: "grading_configs",
 			model: mongo.IndexModel{
 				Keys: bson.D{
-					{Key: "schoolId", Value: 1},
 					{Key: "academicYearId", Value: 1},
 					{Key: "subjectId", Value: 1},
 				},
 				Options: options.Index().SetUnique(true),
 			},
 		},
-		// learning_outcomes: unique {schoolId, academicYearId, semester, subjectId, teacherId, titleKey}
+		// learning_outcomes: unique {academicYearId, semester, subjectId, teacherId, titleKey}
 		{
 			collection: "learning_outcomes",
 			model: mongo.IndexModel{
 				Keys: bson.D{
-					{Key: "schoolId", Value: 1},
 					{Key: "academicYearId", Value: 1},
 					{Key: "semester", Value: 1},
 					{Key: "subjectId", Value: 1},
@@ -130,45 +128,41 @@ func EnsureTeacherIndexes(ctx context.Context, db *mongo.Database) error {
 				Options: options.Index().SetUnique(true),
 			},
 		},
-		// materials: {schoolId, teacherId, createdAt: -1}
+		// materials: {teacherId, createdAt: -1}
 		{
 			collection: "materials",
 			model: mongo.IndexModel{
 				Keys: bson.D{
-					{Key: "schoolId", Value: 1},
 					{Key: "teacherId", Value: 1},
 					{Key: "createdAt", Value: -1},
 				},
 			},
 		},
-		// assignments: {schoolId, teacherId, createdAt: -1}
+		// assignments: {teacherId, createdAt: -1}
 		{
 			collection: "assignments",
 			model: mongo.IndexModel{
 				Keys: bson.D{
-					{Key: "schoolId", Value: 1},
 					{Key: "teacherId", Value: 1},
 					{Key: "createdAt", Value: -1},
 				},
 			},
 		},
-		// projects: {schoolId, teacherId, createdAt: -1}
+		// projects: {teacherId, createdAt: -1}
 		{
 			collection: "projects",
 			model: mongo.IndexModel{
 				Keys: bson.D{
-					{Key: "schoolId", Value: 1},
 					{Key: "teacherId", Value: 1},
 					{Key: "createdAt", Value: -1},
 				},
 			},
 		},
-		// assessments: {schoolId, teacherId, createdAt: -1}
+		// assessments: {teacherId, createdAt: -1}
 		{
 			collection: "assessments",
 			model: mongo.IndexModel{
 				Keys: bson.D{
-					{Key: "schoolId", Value: 1},
 					{Key: "teacherId", Value: 1},
 					{Key: "createdAt", Value: -1},
 				},

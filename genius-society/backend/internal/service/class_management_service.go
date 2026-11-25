@@ -14,7 +14,7 @@ import (
 
 type ClassRepository interface {
 	Create(context.Context, *model.Class) error
-	ExistsByCode(context.Context, bson.ObjectID, bson.ObjectID, string) (bool, error)
+	ExistsByCode(context.Context, bson.ObjectID, string) (bool, error)
 	FindByID(context.Context, bson.ObjectID) (*model.Class, error)
 	Update(context.Context, bson.ObjectID, bson.M) error
 	Archive(context.Context, bson.ObjectID) error
@@ -31,12 +31,12 @@ func NewClassService(classRepo ClassRepository) *ClassService {
 }
 
 // CreateClass creates a new class after validating uniqueness.
-func (s *ClassService) CreateClass(ctx context.Context, schoolID, academicYearID bson.ObjectID, classDTO *dto.ClassCreateDTO) (*model.Class, error) {
+func (s *ClassService) CreateClass(ctx context.Context, academicYearID bson.ObjectID, classDTO *dto.ClassCreateDTO) (*model.Class, error) {
 	if classDTO == nil {
 		return nil, errors.New("class data is required")
 	}
-	// Ensure class code is unique within the school and academic year.
-	exists, err := s.classRepo.ExistsByCode(ctx, schoolID, academicYearID, classDTO.Code)
+	// Ensure class code is unique within the academic year.
+	exists, err := s.classRepo.ExistsByCode(ctx, academicYearID, classDTO.Code)
 	if err != nil {
 		return nil, fmt.Errorf("checking class code existence: %w", err)
 	}
@@ -55,7 +55,6 @@ func (s *ClassService) CreateClass(ctx context.Context, schoolID, academicYearID
 	}
 
 	newClass := &model.Class{
-		SchoolID:          schoolID,
 		AcademicYearID:    academicYearID,
 		Code:              classDTO.Code,
 		Name:              classDTO.Name,
@@ -72,8 +71,8 @@ func (s *ClassService) CreateClass(ctx context.Context, schoolID, academicYearID
 	return newClass, nil
 }
 
-// GetClassDetail retrieves a class by its ID ensuring it belongs to the school.
-func (s *ClassService) GetClassDetail(ctx context.Context, schoolID, classID bson.ObjectID) (*model.Class, error) {
+// GetClassDetail retrieves a class by its ID.
+func (s *ClassService) GetClassDetail(ctx context.Context, classID bson.ObjectID) (*model.Class, error) {
 	if classID.IsZero() {
 		return nil, errors.New("invalid class ID")
 	}
@@ -81,14 +80,14 @@ func (s *ClassService) GetClassDetail(ctx context.Context, schoolID, classID bso
 	if err != nil {
 		return nil, fmt.Errorf("fetching class: %w", err)
 	}
-	if class == nil || class.SchoolID != schoolID {
-		return nil, errors.New("class not found or does not belong to this school")
+	if class == nil {
+		return nil, errors.New("class not found")
 	}
 	return class, nil
 }
 
 // UpdateClass updates mutable fields of a class.
-func (s *ClassService) UpdateClass(ctx context.Context, schoolID, classID bson.ObjectID, updateDTO *dto.ClassUpdateDTO) (*model.Class, error) {
+func (s *ClassService) UpdateClass(ctx context.Context, classID bson.ObjectID, updateDTO *dto.ClassUpdateDTO) (*model.Class, error) {
 	if classID.IsZero() {
 		return nil, errors.New("invalid class ID")
 	}
@@ -96,8 +95,8 @@ func (s *ClassService) UpdateClass(ctx context.Context, schoolID, classID bson.O
 	if err != nil {
 		return nil, fmt.Errorf("fetching class: %w", err)
 	}
-	if existing == nil || existing.SchoolID != schoolID {
-		return nil, errors.New("class not found or does not belong to this school")
+	if existing == nil {
+		return nil, errors.New("class not found")
 	}
 	// Build update map
 	update := bson.M{}
@@ -152,7 +151,7 @@ func (s *ClassService) UpdateClass(ctx context.Context, schoolID, classID bson.O
 }
 
 // ArchiveClass soft-deletes (archives) a class.
-func (s *ClassService) ArchiveClass(ctx context.Context, schoolID, classID bson.ObjectID) error {
+func (s *ClassService) ArchiveClass(ctx context.Context, classID bson.ObjectID) error {
 	if classID.IsZero() {
 		return errors.New("invalid class ID")
 	}
@@ -160,8 +159,8 @@ func (s *ClassService) ArchiveClass(ctx context.Context, schoolID, classID bson.
 	if err != nil {
 		return fmt.Errorf("fetching class: %w", err)
 	}
-	if class == nil || class.SchoolID != schoolID {
-		return errors.New("class not found or does not belong to this school")
+	if class == nil {
+		return errors.New("class not found")
 	}
 	if err := s.classRepo.Archive(ctx, classID); err != nil {
 		return fmt.Errorf("archiving class: %w", err)
@@ -169,15 +168,13 @@ func (s *ClassService) ArchiveClass(ctx context.Context, schoolID, classID bson.
 	return nil
 }
 
-// ListClasses returns paginated list of classes for a school.
-func (s *ClassService) ListClasses(ctx context.Context, schoolID bson.ObjectID, filter *dto.ClassListFilter) (*dto.PaginatedResult[*model.Class], error) {
+// ListClasses returns paginated list of classes.
+func (s *ClassService) ListClasses(ctx context.Context, filter *dto.ClassListFilter) (*dto.PaginatedResult[*model.Class], error) {
 	if filter == nil {
 		filter = &dto.ClassListFilter{}
 	}
-	// Ensure school filter is set
-	filter.SchoolID = schoolID
 	// Build BSON filter map
-	bsonFilter := bson.M{"schoolId": schoolID}
+	bsonFilter := bson.M{}
 	if filter.Code != nil && *filter.Code != "" {
 		bsonFilter["code"] = *filter.Code
 	}

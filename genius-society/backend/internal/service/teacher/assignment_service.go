@@ -80,7 +80,7 @@ func (s *assignmentServiceImpl) ListAssignments(ctx context.Context, scope *midd
 		page = 1
 	}
 
-	list, total, err := s.repo.FindAssignments(ctx, scope.SchoolID, scope.TeacherID, classID, subjectID, search, page, limit)
+	list, total, err := s.repo.FindAssignments(ctx, scope.TeacherID, classID, subjectID, search, page, limit)
 	if err != nil {
 		return nil, nil, err
 	}
@@ -106,7 +106,7 @@ func (s *assignmentServiceImpl) ListAssignments(ctx context.Context, scope *midd
 		allSubjectIDs = append(allSubjectIDs, sid)
 	}
 
-	classMap, _ := s.repo.FindClassesMap(ctx, scope.SchoolID, allClassIDs)
+	classMap, _ := s.repo.FindClassesMap(ctx, allClassIDs)
 	subjectMap, _ := s.repo.FindSubjectsMap(ctx, allSubjectIDs)
 
 	result := make([]teacherdto.AssignmentListDTO, 0, len(list))
@@ -126,7 +126,7 @@ func (s *assignmentServiceImpl) ListAssignments(ctx context.Context, scope *midd
 		}
 
 		// Count submissions and graded
-		submissions, _ := s.repo.FindSubmissions(ctx, scope.SchoolID, a.ID)
+		submissions, _ := s.repo.FindSubmissions(ctx, a.ID)
 		latestSubmissions := make(map[bson.ObjectID]*model.AssignmentSubmission)
 		var gradedCount int64
 		for _, sub := range submissions {
@@ -140,7 +140,7 @@ func (s *assignmentServiceImpl) ListAssignments(ctx context.Context, scope *midd
 			}
 		}
 
-		students, _ := s.repo.FindStudentsByClassIDs(ctx, scope.SchoolID, a.ClassIDs)
+		students, _ := s.repo.FindStudentsByClassIDs(ctx, a.ClassIDs)
 
 		result = append(result, teacherdto.AssignmentListDTO{
 			ID:             a.ID.Hex(),
@@ -177,7 +177,7 @@ func (s *assignmentServiceImpl) GetAssignmentDetail(ctx context.Context, scope *
 		return nil, handler.ErrNotFound
 	}
 
-	a, err := s.repo.FindAssignmentByID(ctx, scope.SchoolID, scope.TeacherID, id)
+	a, err := s.repo.FindAssignmentByID(ctx, scope.TeacherID, id)
 	if err != nil {
 		return nil, err
 	}
@@ -185,7 +185,7 @@ func (s *assignmentServiceImpl) GetAssignmentDetail(ctx context.Context, scope *
 		return nil, handler.ErrNotFound
 	}
 
-	classMap, _ := s.repo.FindClassesMap(ctx, scope.SchoolID, a.ClassIDs)
+	classMap, _ := s.repo.FindClassesMap(ctx, a.ClassIDs)
 	subjectMap, _ := s.repo.FindSubjectsMap(ctx, []bson.ObjectID{a.SubjectID})
 
 	subName := ""
@@ -202,7 +202,7 @@ func (s *assignmentServiceImpl) GetAssignmentDetail(ctx context.Context, scope *
 		}
 	}
 
-	submissions, _ := s.repo.FindSubmissions(ctx, scope.SchoolID, a.ID)
+	submissions, _ := s.repo.FindSubmissions(ctx, a.ID)
 	latestSubmissions := make(map[bson.ObjectID]*model.AssignmentSubmission)
 	var gradedCount int64
 	for _, sub := range submissions {
@@ -216,7 +216,7 @@ func (s *assignmentServiceImpl) GetAssignmentDetail(ctx context.Context, scope *
 		}
 	}
 
-	students, _ := s.repo.FindStudentsByClassIDs(ctx, scope.SchoolID, a.ClassIDs)
+	students, _ := s.repo.FindStudentsByClassIDs(ctx, a.ClassIDs)
 
 	return &teacherdto.AssignmentResponseDTO{
 		ID:             a.ID.Hex(),
@@ -311,7 +311,6 @@ func (s *assignmentServiceImpl) CreateAssignment(ctx context.Context, scope *mid
 	now := time.Now().UTC()
 	asg := &model.Assignment{
 		ID:            bson.NewObjectID(),
-		SchoolID:      scope.SchoolID,
 		TeacherID:     scope.TeacherID,
 		SubjectID:     subjectID,
 		ClassIDs:      classOIDs,
@@ -331,7 +330,7 @@ func (s *assignmentServiceImpl) CreateAssignment(ctx context.Context, scope *mid
 
 	// Trigger notification for students
 	if s.notifSvc != nil {
-		_ = s.notifSvc.NotifyClasses(ctx, scope.SchoolID, classOIDs, "new_assignment", "Tugas Baru: "+title, fmt.Sprintf("Tugas baru telah diberikan dengan batas waktu %s", payload.Deadline.Format("02 Jan 2006 15:04")), "assignment", asg.ID)
+		_ = s.notifSvc.NotifyClasses(ctx, classOIDs, "new_assignment", "Tugas Baru: "+title, fmt.Sprintf("Tugas baru telah diberikan dengan batas waktu %s", payload.Deadline.Format("02 Jan 2006 15:04")), "assignment", asg.ID)
 	}
 
 	return s.GetAssignmentDetail(ctx, scope, asg.ID)
@@ -342,7 +341,7 @@ func (s *assignmentServiceImpl) UpdateAssignment(ctx context.Context, scope *mid
 		return nil, handler.ErrUnauthorized
 	}
 
-	asg, err := s.repo.FindAssignmentByID(ctx, scope.SchoolID, scope.TeacherID, id)
+	asg, err := s.repo.FindAssignmentByID(ctx, scope.TeacherID, id)
 	if err != nil {
 		return nil, err
 	}
@@ -393,13 +392,13 @@ func (s *assignmentServiceImpl) UpdateAssignment(ctx context.Context, scope *mid
 		}
 
 		// Check if any removed class already has submissions -> 409 Conflict
-		submissions, _ := s.repo.FindSubmissions(ctx, scope.SchoolID, asg.ID)
+		submissions, _ := s.repo.FindSubmissions(ctx, asg.ID)
 		if len(submissions) > 0 {
 			newClassSet := make(map[bson.ObjectID]bool)
 			for _, cid := range newClassOIDs {
 				newClassSet[cid] = true
 			}
-			students, _ := s.repo.FindStudentsByClassIDs(ctx, scope.SchoolID, asg.ClassIDs)
+			students, _ := s.repo.FindStudentsByClassIDs(ctx, asg.ClassIDs)
 			studentClassMap := make(map[bson.ObjectID]bson.ObjectID)
 			for _, st := range students {
 				studentClassMap[st.ID] = st.ClassID
@@ -464,7 +463,7 @@ func (s *assignmentServiceImpl) DeleteAssignment(ctx context.Context, scope *mid
 		return handler.ErrUnauthorized
 	}
 
-	asg, err := s.repo.FindAssignmentByID(ctx, scope.SchoolID, scope.TeacherID, id)
+	asg, err := s.repo.FindAssignmentByID(ctx, scope.TeacherID, id)
 	if err != nil {
 		return err
 	}
@@ -473,7 +472,7 @@ func (s *assignmentServiceImpl) DeleteAssignment(ctx context.Context, scope *mid
 	}
 
 	// Rule: Cannot delete assignment if already has submissions -> 409 Conflict
-	count, err := s.repo.CountSubmissionsByAssignmentID(ctx, scope.SchoolID, id)
+	count, err := s.repo.CountSubmissionsByAssignmentID(ctx, id)
 	if err != nil {
 		return err
 	}
@@ -482,7 +481,7 @@ func (s *assignmentServiceImpl) DeleteAssignment(ctx context.Context, scope *mid
 	}
 
 	// 1. Delete from DB first
-	if err := s.repo.DeleteAssignment(ctx, scope.SchoolID, scope.TeacherID, id); err != nil {
+	if err := s.repo.DeleteAssignment(ctx, scope.TeacherID, id); err != nil {
 		return err
 	}
 
@@ -503,7 +502,7 @@ func (s *assignmentServiceImpl) GetDownloadURL(ctx context.Context, scope *middl
 		return "", handler.ErrUnauthorized
 	}
 
-	asg, err := s.repo.FindAssignmentByID(ctx, scope.SchoolID, scope.TeacherID, id)
+	asg, err := s.repo.FindAssignmentByID(ctx, scope.TeacherID, id)
 	if err != nil {
 		return "", err
 	}
@@ -528,7 +527,7 @@ func (s *assignmentServiceImpl) ListSubmissions(ctx context.Context, scope *midd
 		return nil, nil, handler.ErrUnauthorized
 	}
 
-	asg, err := s.repo.FindAssignmentByID(ctx, scope.SchoolID, scope.TeacherID, assignmentID)
+	asg, err := s.repo.FindAssignmentByID(ctx, scope.TeacherID, assignmentID)
 	if err != nil {
 		return nil, nil, err
 	}
@@ -550,7 +549,7 @@ func (s *assignmentServiceImpl) ListSubmissions(ctx context.Context, scope *midd
 		targetClasses = []bson.ObjectID{*filterClassID}
 	}
 
-	students, err := s.repo.FindStudentsByClassIDs(ctx, scope.SchoolID, targetClasses)
+	students, err := s.repo.FindStudentsByClassIDs(ctx, targetClasses)
 	if err != nil {
 		return nil, nil, err
 	}
@@ -563,9 +562,9 @@ func (s *assignmentServiceImpl) ListSubmissions(ctx context.Context, scope *midd
 		}
 	}
 	userMap, _ := s.repo.FindUsersMap(ctx, userIDs)
-	classMap, _ := s.repo.FindClassesMap(ctx, scope.SchoolID, asg.ClassIDs)
+	classMap, _ := s.repo.FindClassesMap(ctx, asg.ClassIDs)
 
-	submissions, err := s.repo.FindSubmissions(ctx, scope.SchoolID, asg.ID)
+	submissions, err := s.repo.FindSubmissions(ctx, asg.ID)
 	if err != nil {
 		return nil, nil, err
 	}
@@ -719,7 +718,7 @@ func (s *assignmentServiceImpl) GradeSubmission(ctx context.Context, scope *midd
 		return handler.NewValidationError("Catatan guru (feedback) maksimal 2000 karakter")
 	}
 
-	asg, err := s.repo.FindAssignmentByID(ctx, scope.SchoolID, scope.TeacherID, assignmentID)
+	asg, err := s.repo.FindAssignmentByID(ctx, scope.TeacherID, assignmentID)
 	if err != nil {
 		return err
 	}
@@ -727,7 +726,7 @@ func (s *assignmentServiceImpl) GradeSubmission(ctx context.Context, scope *midd
 		return handler.ErrNotFound
 	}
 
-	sub, err := s.repo.FindSubmissionByID(ctx, scope.SchoolID, submissionID)
+	sub, err := s.repo.FindSubmissionByID(ctx, submissionID)
 	if err != nil {
 		return err
 	}
@@ -735,7 +734,7 @@ func (s *assignmentServiceImpl) GradeSubmission(ctx context.Context, scope *midd
 		return handler.ErrNotFound
 	}
 
-	student, err := s.repo.FindStudentByID(ctx, scope.SchoolID, sub.StudentID)
+	student, err := s.repo.FindStudentByID(ctx, sub.StudentID)
 	if err != nil {
 		return err
 	}
@@ -764,7 +763,6 @@ func (s *assignmentServiceImpl) GradeSubmission(ctx context.Context, scope *midd
 
 	audit := &model.AuditLog{
 		ID:         bson.NewObjectID(),
-		SchoolID:   scope.SchoolID,
 		UserID:     scope.UserID,
 		Action:     "grade_assignment",
 		EntityType: "assignment_submission",
@@ -777,7 +775,7 @@ func (s *assignmentServiceImpl) GradeSubmission(ctx context.Context, scope *midd
 		Timestamp: now,
 	}
 
-	if err := s.repo.GradeSubmissionInTransaction(ctx, scope.SchoolID, scope.TeacherID, sub, grade, audit); err != nil {
+	if err := s.repo.GradeSubmissionInTransaction(ctx, scope.TeacherID, sub, grade, audit); err != nil {
 		return err
 	}
 
@@ -785,7 +783,6 @@ func (s *assignmentServiceImpl) GradeSubmission(ctx context.Context, scope *midd
 	if s.notifRepo != nil && !student.UserID.IsZero() {
 		notif := &model.Notification{
 			ID:        bson.NewObjectID(),
-			SchoolID:  scope.SchoolID,
 			UserID:    student.UserID,
 			Type:      "grade_released",
 			Title:     "Nilai Keluar: " + asg.Title,

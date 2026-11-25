@@ -20,10 +20,8 @@ func NewAcademicYearHandler(svc *service.AcademicYearService) *AcademicYearHandl
 
 // GET /api/academic-years
 func (h *AcademicYearHandler) List(c *gin.Context) {
-	schoolIDHex := middleware.GetSchoolID(c)
-	schoolID, _ := bson.ObjectIDFromHex(schoolIDHex)
 
-	years, err := h.svc.List(c.Request.Context(), schoolID)
+	years, err := h.svc.List(c.Request.Context())
 	if err != nil {
 		c.JSON(http.StatusInternalServerError, dto.ErrorResponse{Success: false, Error: dto.ErrorBody{Code: "INTERNAL_ERROR", Message: err.Error()}})
 		return
@@ -33,15 +31,13 @@ func (h *AcademicYearHandler) List(c *gin.Context) {
 
 // GET /api/academic-years/:id
 func (h *AcademicYearHandler) GetOne(c *gin.Context) {
-	schoolIDHex := middleware.GetSchoolID(c)
-	schoolID, _ := bson.ObjectIDFromHex(schoolIDHex)
 
 	ayID, err := bson.ObjectIDFromHex(c.Param("id"))
 	if err != nil {
 		c.JSON(http.StatusBadRequest, dto.ErrorResponse{Success: false, Error: dto.ErrorBody{Code: "BAD_REQUEST", Message: "invalid academic year id"}})
 		return
 	}
-	year, err := h.svc.GetOne(c.Request.Context(), schoolID, ayID)
+	year, err := h.svc.GetOne(c.Request.Context(), ayID)
 	if err != nil {
 		c.JSON(http.StatusNotFound, dto.ErrorResponse{Success: false, Error: dto.ErrorBody{Code: "NOT_FOUND", Message: "academic year not found"}})
 		return
@@ -56,12 +52,10 @@ func (h *AcademicYearHandler) Create(c *gin.Context) {
 		c.JSON(http.StatusBadRequest, dto.ErrorResponse{Success: false, Error: dto.ErrorBody{Code: "VALIDATION_ERROR", Message: err.Error()}})
 		return
 	}
-	schoolIDHex := middleware.GetSchoolID(c)
-	schoolID, _ := bson.ObjectIDFromHex(schoolIDHex)
 	userIDHex := middleware.GetUserID(c)
 	userID, _ := bson.ObjectIDFromHex(userIDHex)
 
-	year, err := h.svc.Create(c.Request.Context(), schoolID, userID, req)
+	year, err := h.svc.Create(c.Request.Context(), userID, req)
 	if err != nil {
 		c.JSON(http.StatusBadRequest, dto.ErrorResponse{Success: false, Error: dto.ErrorBody{Code: "BAD_REQUEST", Message: err.Error()}})
 		return
@@ -76,8 +70,6 @@ func (h *AcademicYearHandler) Update(c *gin.Context) {
 		c.JSON(http.StatusBadRequest, dto.ErrorResponse{Success: false, Error: dto.ErrorBody{Code: "VALIDATION_ERROR", Message: err.Error()}})
 		return
 	}
-	schoolIDHex := middleware.GetSchoolID(c)
-	schoolID, _ := bson.ObjectIDFromHex(schoolIDHex)
 	userIDHex := middleware.GetUserID(c)
 	userID, _ := bson.ObjectIDFromHex(userIDHex)
 
@@ -86,7 +78,7 @@ func (h *AcademicYearHandler) Update(c *gin.Context) {
 		c.JSON(http.StatusBadRequest, dto.ErrorResponse{Success: false, Error: dto.ErrorBody{Code: "BAD_REQUEST", Message: "invalid id"}})
 		return
 	}
-	year, err := h.svc.Update(c.Request.Context(), schoolID, userID, ayID, req)
+	year, err := h.svc.Update(c.Request.Context(), userID, ayID, req)
 	if err != nil {
 		c.JSON(http.StatusBadRequest, dto.ErrorResponse{Success: false, Error: dto.ErrorBody{Code: "BAD_REQUEST", Message: err.Error()}})
 		return
@@ -96,8 +88,6 @@ func (h *AcademicYearHandler) Update(c *gin.Context) {
 
 // PATCH /api/academic-years/:id/activate
 func (h *AcademicYearHandler) Activate(c *gin.Context) {
-	schoolIDHex := middleware.GetSchoolID(c)
-	schoolID, _ := bson.ObjectIDFromHex(schoolIDHex)
 	userIDHex := middleware.GetUserID(c)
 	userID, _ := bson.ObjectIDFromHex(userIDHex)
 
@@ -106,7 +96,7 @@ func (h *AcademicYearHandler) Activate(c *gin.Context) {
 		c.JSON(http.StatusBadRequest, dto.ErrorResponse{Success: false, Error: dto.ErrorBody{Code: "BAD_REQUEST", Message: "invalid id"}})
 		return
 	}
-	if err := h.svc.Activate(c.Request.Context(), schoolID, userID, ayID); err != nil {
+	if err := h.svc.Activate(c.Request.Context(), userID, ayID); err != nil {
 		c.JSON(http.StatusBadRequest, dto.ErrorResponse{Success: false, Error: dto.ErrorBody{Code: "BAD_REQUEST", Message: err.Error()}})
 		return
 	}
@@ -115,8 +105,6 @@ func (h *AcademicYearHandler) Activate(c *gin.Context) {
 
 // PATCH /api/academic-years/:id/archive
 func (h *AcademicYearHandler) Archive(c *gin.Context) {
-	schoolIDHex := middleware.GetSchoolID(c)
-	schoolID, _ := bson.ObjectIDFromHex(schoolIDHex)
 	userIDHex := middleware.GetUserID(c)
 	userID, _ := bson.ObjectIDFromHex(userIDHex)
 
@@ -125,7 +113,7 @@ func (h *AcademicYearHandler) Archive(c *gin.Context) {
 		c.JSON(http.StatusBadRequest, dto.ErrorResponse{Success: false, Error: dto.ErrorBody{Code: "BAD_REQUEST", Message: "invalid id"}})
 		return
 	}
-	if err := h.svc.Archive(c.Request.Context(), schoolID, userID, ayID); err != nil {
+	if err := h.svc.Archive(c.Request.Context(), userID, ayID); err != nil {
 		c.JSON(http.StatusBadRequest, dto.ErrorResponse{Success: false, Error: dto.ErrorBody{Code: "BAD_REQUEST", Message: err.Error()}})
 		return
 	}
@@ -134,8 +122,6 @@ func (h *AcademicYearHandler) Archive(c *gin.Context) {
 
 // DELETE /api/academic-years/:id
 func (h *AcademicYearHandler) Delete(c *gin.Context) {
-	schoolIDHex := middleware.GetSchoolID(c)
-	schoolID, _ := bson.ObjectIDFromHex(schoolIDHex)
 	userIDHex := middleware.GetUserID(c)
 	userID, _ := bson.ObjectIDFromHex(userIDHex)
 
@@ -144,7 +130,7 @@ func (h *AcademicYearHandler) Delete(c *gin.Context) {
 		c.JSON(http.StatusBadRequest, dto.ErrorResponse{Success: false, Error: dto.ErrorBody{Code: "BAD_REQUEST", Message: "invalid id"}})
 		return
 	}
-	if err := h.svc.Delete(c.Request.Context(), schoolID, userID, ayID); err != nil {
+	if err := h.svc.Delete(c.Request.Context(), userID, ayID); err != nil {
 		c.JSON(http.StatusBadRequest, dto.ErrorResponse{Success: false, Error: dto.ErrorBody{Code: "BAD_REQUEST", Message: err.Error()}})
 		return
 	}
@@ -157,8 +143,6 @@ func (h *AcademicYearHandler) Delete(c *gin.Context) {
 
 // GET /api/academic-years/:id/promotion/candidates
 func (h *AcademicYearHandler) GetPromotionCandidates(c *gin.Context) {
-	schoolIDHex := middleware.GetSchoolID(c)
-	schoolID, _ := bson.ObjectIDFromHex(schoolIDHex)
 
 	sourceYearID, err := bson.ObjectIDFromHex(c.Param("id"))
 	if err != nil {
@@ -166,7 +150,7 @@ func (h *AcademicYearHandler) GetPromotionCandidates(c *gin.Context) {
 		return
 	}
 
-	candidates, err := h.svc.GetPromotionCandidates(c.Request.Context(), schoolID, sourceYearID)
+	candidates, err := h.svc.GetPromotionCandidates(c.Request.Context(), sourceYearID)
 	if err != nil {
 		c.JSON(http.StatusBadRequest, dto.ErrorResponse{Success: false, Error: dto.ErrorBody{Code: "BAD_REQUEST", Message: err.Error()}})
 		return
@@ -176,8 +160,6 @@ func (h *AcademicYearHandler) GetPromotionCandidates(c *gin.Context) {
 
 // POST /api/academic-years/:id/promotion/preview
 func (h *AcademicYearHandler) PreviewPromotion(c *gin.Context) {
-	schoolIDHex := middleware.GetSchoolID(c)
-	schoolID, _ := bson.ObjectIDFromHex(schoolIDHex)
 
 	var req dto.PromotionPreviewRequest
 	if err := c.ShouldBindJSON(&req); err != nil {
@@ -190,7 +172,7 @@ func (h *AcademicYearHandler) PreviewPromotion(c *gin.Context) {
 		req.SourceAcademicYearID = c.Param("id")
 	}
 
-	preview, err := h.svc.PreviewPromotion(c.Request.Context(), schoolID, req)
+	preview, err := h.svc.PreviewPromotion(c.Request.Context(), req)
 	if err != nil {
 		c.JSON(http.StatusBadRequest, dto.ErrorResponse{Success: false, Error: dto.ErrorBody{Code: "BAD_REQUEST", Message: err.Error()}})
 		return
@@ -200,8 +182,6 @@ func (h *AcademicYearHandler) PreviewPromotion(c *gin.Context) {
 
 // POST /api/academic-years/:id/promotion/execute
 func (h *AcademicYearHandler) ExecutePromotion(c *gin.Context) {
-	schoolIDHex := middleware.GetSchoolID(c)
-	schoolID, _ := bson.ObjectIDFromHex(schoolIDHex)
 	userIDHex := middleware.GetUserID(c)
 	userID, _ := bson.ObjectIDFromHex(userIDHex)
 
@@ -215,7 +195,7 @@ func (h *AcademicYearHandler) ExecutePromotion(c *gin.Context) {
 		req.SourceAcademicYearID = c.Param("id")
 	}
 
-	res, err := h.svc.ExecutePromotion(c.Request.Context(), schoolID, userID, req)
+	res, err := h.svc.ExecutePromotion(c.Request.Context(), userID, req)
 	if err != nil {
 		c.JSON(http.StatusBadRequest, dto.ErrorResponse{Success: false, Error: dto.ErrorBody{Code: "BAD_REQUEST", Message: err.Error()}})
 		return
@@ -225,8 +205,6 @@ func (h *AcademicYearHandler) ExecutePromotion(c *gin.Context) {
 
 // GET /api/academic-years/:id/promotion/history
 func (h *AcademicYearHandler) GetPromotionHistory(c *gin.Context) {
-	schoolIDHex := middleware.GetSchoolID(c)
-	schoolID, _ := bson.ObjectIDFromHex(schoolIDHex)
 
 	sourceYearID, err := bson.ObjectIDFromHex(c.Param("id"))
 	if err != nil {
@@ -234,7 +212,7 @@ func (h *AcademicYearHandler) GetPromotionHistory(c *gin.Context) {
 		return
 	}
 
-	history, err := h.svc.GetPromotionHistory(c.Request.Context(), schoolID, sourceYearID)
+	history, err := h.svc.GetPromotionHistory(c.Request.Context(), sourceYearID)
 	if err != nil {
 		c.JSON(http.StatusBadRequest, dto.ErrorResponse{Success: false, Error: dto.ErrorBody{Code: "BAD_REQUEST", Message: err.Error()}})
 		return
@@ -248,8 +226,6 @@ func (h *AcademicYearHandler) GetPromotionHistory(c *gin.Context) {
 
 // GET /api/academic-years/:id/graduation/candidates
 func (h *AcademicYearHandler) GetGraduationCandidates(c *gin.Context) {
-	schoolIDHex := middleware.GetSchoolID(c)
-	schoolID, _ := bson.ObjectIDFromHex(schoolIDHex)
 
 	ayID, err := bson.ObjectIDFromHex(c.Param("id"))
 	if err != nil {
@@ -257,7 +233,7 @@ func (h *AcademicYearHandler) GetGraduationCandidates(c *gin.Context) {
 		return
 	}
 
-	candidates, err := h.svc.GetGraduationCandidates(c.Request.Context(), schoolID, ayID)
+	candidates, err := h.svc.GetGraduationCandidates(c.Request.Context(), ayID)
 	if err != nil {
 		c.JSON(http.StatusBadRequest, dto.ErrorResponse{Success: false, Error: dto.ErrorBody{Code: "BAD_REQUEST", Message: err.Error()}})
 		return
@@ -267,8 +243,6 @@ func (h *AcademicYearHandler) GetGraduationCandidates(c *gin.Context) {
 
 // POST /api/academic-years/:id/graduation/preview
 func (h *AcademicYearHandler) PreviewGraduation(c *gin.Context) {
-	schoolIDHex := middleware.GetSchoolID(c)
-	schoolID, _ := bson.ObjectIDFromHex(schoolIDHex)
 
 	var req dto.GraduationPreviewRequest
 	if err := c.ShouldBindJSON(&req); err != nil {
@@ -280,7 +254,7 @@ func (h *AcademicYearHandler) PreviewGraduation(c *gin.Context) {
 		req.AcademicYearID = c.Param("id")
 	}
 
-	preview, err := h.svc.PreviewGraduation(c.Request.Context(), schoolID, req)
+	preview, err := h.svc.PreviewGraduation(c.Request.Context(), req)
 	if err != nil {
 		c.JSON(http.StatusBadRequest, dto.ErrorResponse{Success: false, Error: dto.ErrorBody{Code: "BAD_REQUEST", Message: err.Error()}})
 		return
@@ -290,8 +264,6 @@ func (h *AcademicYearHandler) PreviewGraduation(c *gin.Context) {
 
 // POST /api/academic-years/:id/graduation/execute
 func (h *AcademicYearHandler) ExecuteGraduation(c *gin.Context) {
-	schoolIDHex := middleware.GetSchoolID(c)
-	schoolID, _ := bson.ObjectIDFromHex(schoolIDHex)
 	userIDHex := middleware.GetUserID(c)
 	userID, _ := bson.ObjectIDFromHex(userIDHex)
 
@@ -305,7 +277,7 @@ func (h *AcademicYearHandler) ExecuteGraduation(c *gin.Context) {
 		req.AcademicYearID = c.Param("id")
 	}
 
-	res, err := h.svc.ExecuteGraduation(c.Request.Context(), schoolID, userID, req)
+	res, err := h.svc.ExecuteGraduation(c.Request.Context(), userID, req)
 	if err != nil {
 		c.JSON(http.StatusBadRequest, dto.ErrorResponse{Success: false, Error: dto.ErrorBody{Code: "BAD_REQUEST", Message: err.Error()}})
 		return
@@ -315,8 +287,6 @@ func (h *AcademicYearHandler) ExecuteGraduation(c *gin.Context) {
 
 // GET /api/academic-years/:id/graduation/history
 func (h *AcademicYearHandler) GetGraduationHistory(c *gin.Context) {
-	schoolIDHex := middleware.GetSchoolID(c)
-	schoolID, _ := bson.ObjectIDFromHex(schoolIDHex)
 
 	ayID, err := bson.ObjectIDFromHex(c.Param("id"))
 	if err != nil {
@@ -324,7 +294,7 @@ func (h *AcademicYearHandler) GetGraduationHistory(c *gin.Context) {
 		return
 	}
 
-	history, err := h.svc.GetGraduationHistory(c.Request.Context(), schoolID, ayID)
+	history, err := h.svc.GetGraduationHistory(c.Request.Context(), ayID)
 	if err != nil {
 		c.JSON(http.StatusBadRequest, dto.ErrorResponse{Success: false, Error: dto.ErrorBody{Code: "BAD_REQUEST", Message: err.Error()}})
 		return
@@ -338,8 +308,6 @@ func (h *AcademicYearHandler) GetGraduationHistory(c *gin.Context) {
 
 // GET /api/academic-years/:id/decisions/suspended
 func (h *AcademicYearHandler) GetSuspendedDecisions(c *gin.Context) {
-	schoolIDHex := middleware.GetSchoolID(c)
-	schoolID, _ := bson.ObjectIDFromHex(schoolIDHex)
 
 	ayID, err := bson.ObjectIDFromHex(c.Param("id"))
 	if err != nil {
@@ -347,7 +315,7 @@ func (h *AcademicYearHandler) GetSuspendedDecisions(c *gin.Context) {
 		return
 	}
 
-	decisions, err := h.svc.GetSuspendedDecisions(c.Request.Context(), schoolID, ayID)
+	decisions, err := h.svc.GetSuspendedDecisions(c.Request.Context(), ayID)
 	if err != nil {
 		c.JSON(http.StatusBadRequest, dto.ErrorResponse{Success: false, Error: dto.ErrorBody{Code: "BAD_REQUEST", Message: err.Error()}})
 		return
@@ -357,8 +325,6 @@ func (h *AcademicYearHandler) GetSuspendedDecisions(c *gin.Context) {
 
 // GET /api/academic-decisions/:decisionId
 func (h *AcademicYearHandler) GetDecisionDetail(c *gin.Context) {
-	schoolIDHex := middleware.GetSchoolID(c)
-	schoolID, _ := bson.ObjectIDFromHex(schoolIDHex)
 
 	decID, err := bson.ObjectIDFromHex(c.Param("decisionId"))
 	if err != nil {
@@ -366,7 +332,7 @@ func (h *AcademicYearHandler) GetDecisionDetail(c *gin.Context) {
 		return
 	}
 
-	decision, err := h.svc.GetDecisionDetail(c.Request.Context(), schoolID, decID)
+	decision, err := h.svc.GetDecisionDetail(c.Request.Context(), decID)
 	if err != nil {
 		c.JSON(http.StatusNotFound, dto.ErrorResponse{Success: false, Error: dto.ErrorBody{Code: "NOT_FOUND", Message: err.Error()}})
 		return
@@ -376,8 +342,6 @@ func (h *AcademicYearHandler) GetDecisionDetail(c *gin.Context) {
 
 // POST /api/academic-decisions/:decisionId/review
 func (h *AcademicYearHandler) ReviewDecision(c *gin.Context) {
-	schoolIDHex := middleware.GetSchoolID(c)
-	schoolID, _ := bson.ObjectIDFromHex(schoolIDHex)
 	userIDHex := middleware.GetUserID(c)
 	userID, _ := bson.ObjectIDFromHex(userIDHex)
 
@@ -393,7 +357,7 @@ func (h *AcademicYearHandler) ReviewDecision(c *gin.Context) {
 		return
 	}
 
-	if err := h.svc.ReviewDecision(c.Request.Context(), schoolID, userID, decID, req); err != nil {
+	if err := h.svc.ReviewDecision(c.Request.Context(), userID, decID, req); err != nil {
 		c.JSON(http.StatusBadRequest, dto.ErrorResponse{Success: false, Error: dto.ErrorBody{Code: "BAD_REQUEST", Message: err.Error()}})
 		return
 	}
@@ -402,8 +366,6 @@ func (h *AcademicYearHandler) ReviewDecision(c *gin.Context) {
 
 // POST /api/academic-decisions/:decisionId/resolve
 func (h *AcademicYearHandler) ResolveDecision(c *gin.Context) {
-	schoolIDHex := middleware.GetSchoolID(c)
-	schoolID, _ := bson.ObjectIDFromHex(schoolIDHex)
 	userIDHex := middleware.GetUserID(c)
 	userID, _ := bson.ObjectIDFromHex(userIDHex)
 
@@ -419,7 +381,7 @@ func (h *AcademicYearHandler) ResolveDecision(c *gin.Context) {
 		return
 	}
 
-	if err := h.svc.ResolveDecision(c.Request.Context(), schoolID, userID, decID, req); err != nil {
+	if err := h.svc.ResolveDecision(c.Request.Context(), userID, decID, req); err != nil {
 		c.JSON(http.StatusBadRequest, dto.ErrorResponse{Success: false, Error: dto.ErrorBody{Code: "BAD_REQUEST", Message: err.Error()}})
 		return
 	}

@@ -15,11 +15,11 @@ import (
 )
 
 type mockTeacherScopeRepo struct {
-	userFunc          func(ctx context.Context, id bson.ObjectID) (*model.User, error)
-	teacherFunc       func(ctx context.Context, id bson.ObjectID) (*model.Teacher, error)
-	ayFunc            func(ctx context.Context, schoolID bson.ObjectID) (*model.AcademicYear, error)
-	pairsFunc         func(ctx context.Context, schoolID, teacherID, ayID bson.ObjectID) ([]repository.ClassSubjectPair, error)
-	teacherSubjFunc   func(ctx context.Context, schoolID, teacherID bson.ObjectID) ([]bson.ObjectID, error)
+	userFunc        func(ctx context.Context, id bson.ObjectID) (*model.User, error)
+	teacherFunc     func(ctx context.Context, id bson.ObjectID) (*model.Teacher, error)
+	ayFunc          func(ctx context.Context) (*model.AcademicYear, error)
+	pairsFunc       func(ctx context.Context, teacherID, ayID bson.ObjectID) ([]repository.ClassSubjectPair, error)
+	teacherSubjFunc func(ctx context.Context, teacherID bson.ObjectID) ([]bson.ObjectID, error)
 }
 
 func (m *mockTeacherScopeRepo) FindUserByID(ctx context.Context, id bson.ObjectID) (*model.User, error) {
@@ -36,23 +36,23 @@ func (m *mockTeacherScopeRepo) FindTeacherByUserID(ctx context.Context, id bson.
 	return nil, nil
 }
 
-func (m *mockTeacherScopeRepo) FindActiveAcademicYear(ctx context.Context, schoolID bson.ObjectID) (*model.AcademicYear, error) {
+func (m *mockTeacherScopeRepo) FindActiveAcademicYear(ctx context.Context) (*model.AcademicYear, error) {
 	if m.ayFunc != nil {
-		return m.ayFunc(ctx, schoolID)
+		return m.ayFunc(ctx)
 	}
 	return nil, nil
 }
 
-func (m *mockTeacherScopeRepo) FindTeacherClassPairs(ctx context.Context, schoolID, teacherID, ayID bson.ObjectID) ([]repository.ClassSubjectPair, error) {
+func (m *mockTeacherScopeRepo) FindTeacherClassPairs(ctx context.Context, teacherID, ayID bson.ObjectID) ([]repository.ClassSubjectPair, error) {
 	if m.pairsFunc != nil {
-		return m.pairsFunc(ctx, schoolID, teacherID, ayID)
+		return m.pairsFunc(ctx, teacherID, ayID)
 	}
 	return nil, nil
 }
 
-func (m *mockTeacherScopeRepo) FindTeacherSubjectIDs(ctx context.Context, schoolID, teacherID bson.ObjectID) ([]bson.ObjectID, error) {
+func (m *mockTeacherScopeRepo) FindTeacherSubjectIDs(ctx context.Context, teacherID bson.ObjectID) ([]bson.ObjectID, error) {
 	if m.teacherSubjFunc != nil {
-		return m.teacherSubjFunc(ctx, schoolID, teacherID)
+		return m.teacherSubjFunc(ctx, teacherID)
 	}
 	return nil, nil
 }
@@ -139,7 +139,7 @@ func TestTeacherScopeMiddleware_ActiveTeacherSuccess(t *testing.T) {
 	gin.SetMode(gin.TestMode)
 
 	uid := bson.NewObjectID()
-	schoolID := bson.NewObjectID()
+
 	teacherID := bson.NewObjectID()
 	ayID := bson.NewObjectID()
 	classID := bson.NewObjectID()
@@ -151,7 +151,6 @@ func TestTeacherScopeMiddleware_ActiveTeacherSuccess(t *testing.T) {
 				ID:       uid,
 				Role:     model.RoleTeacher,
 				IsActive: true,
-				SchoolID: schoolID,
 			}, nil
 		},
 		teacherFunc: func(ctx context.Context, id bson.ObjectID) (*model.Teacher, error) {
@@ -162,15 +161,14 @@ func TestTeacherScopeMiddleware_ActiveTeacherSuccess(t *testing.T) {
 				WalasClassIDs: []bson.ObjectID{classID},
 			}, nil
 		},
-		ayFunc: func(ctx context.Context, sID bson.ObjectID) (*model.AcademicYear, error) {
+		ayFunc: func(ctx context.Context) (*model.AcademicYear, error) {
 			return &model.AcademicYear{
 				ID:       ayID,
-				SchoolID: sID,
 				Semester: 1,
 				IsActive: true,
 			}, nil
 		},
-		pairsFunc: func(ctx context.Context, sID, tID, aID bson.ObjectID) ([]repository.ClassSubjectPair, error) {
+		pairsFunc: func(ctx context.Context, tID, aID bson.ObjectID) ([]repository.ClassSubjectPair, error) {
 			return []repository.ClassSubjectPair{
 				{ClassID: classID, SubjectID: subjID},
 			}, nil

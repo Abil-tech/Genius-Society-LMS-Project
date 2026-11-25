@@ -41,7 +41,7 @@ func (s *walasServiceImpl) GetWalasStudents(ctx context.Context, scope *middlewa
 		return nil, err
 	}
 
-	students, err := s.repo.FindStudentsByClassID(ctx, scope.SchoolID, classID)
+	students, err := s.repo.FindStudentsByClassID(ctx, classID)
 	if err != nil {
 		return nil, err
 	}
@@ -58,7 +58,7 @@ func (s *walasServiceImpl) GetWalasStudents(ctx context.Context, scope *middlewa
 	userMap, _ := s.repo.FindUsersByIDs(ctx, userIDs)
 
 	// Fetch all grades to compute average score per student
-	grades, _ := s.repo.FindGradesByClass(ctx, scope.SchoolID, classID, scope.AcademicYearID)
+	grades, _ := s.repo.FindGradesByClass(ctx, classID, scope.AcademicYearID)
 	studentScores := make(map[bson.ObjectID][]float64)
 	for _, g := range grades {
 		studentScores[g.StudentID] = append(studentScores[g.StudentID], g.Score)
@@ -126,7 +126,7 @@ func (s *walasServiceImpl) GetWalasGrades(ctx context.Context, scope *middleware
 		return nil, err
 	}
 
-	students, err := s.repo.FindStudentsByClassID(ctx, scope.SchoolID, classID)
+	students, err := s.repo.FindStudentsByClassID(ctx, classID)
 	if err != nil {
 		return nil, err
 	}
@@ -142,7 +142,7 @@ func (s *walasServiceImpl) GetWalasGrades(ctx context.Context, scope *middleware
 	}
 	userMap, _ := s.repo.FindUsersByIDs(ctx, userIDs)
 
-	grades, _ := s.repo.FindGradesByClass(ctx, scope.SchoolID, classID, scope.AcademicYearID)
+	grades, _ := s.repo.FindGradesByClass(ctx, classID, scope.AcademicYearID)
 
 	// Collect all subject IDs from grades
 	subjectIDSet := make(map[bson.ObjectID]bool)

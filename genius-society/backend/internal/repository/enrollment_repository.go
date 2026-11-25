@@ -47,10 +47,9 @@ func (r *EnrollmentRepository) BulkCreate(ctx context.Context, enrollments []*mo
 	return err
 }
 
-func (r *EnrollmentRepository) FindByStudentAndYear(ctx context.Context, schoolID, studentID, academicYearID bson.ObjectID) (*model.StudentEnrollment, error) {
+func (r *EnrollmentRepository) FindByStudentAndYear(ctx context.Context, studentID, academicYearID bson.ObjectID) (*model.StudentEnrollment, error) {
 	var e model.StudentEnrollment
 	filter := bson.M{
-		"schoolId":       schoolID,
 		"studentId":      studentID,
 		"academicYearId": academicYearID,
 	}
@@ -60,10 +59,9 @@ func (r *EnrollmentRepository) FindByStudentAndYear(ctx context.Context, schoolI
 	return &e, nil
 }
 
-func (r *EnrollmentRepository) FindByClass(ctx context.Context, schoolID, classID bson.ObjectID) ([]*model.StudentEnrollment, error) {
+func (r *EnrollmentRepository) FindByClass(ctx context.Context, classID bson.ObjectID) ([]*model.StudentEnrollment, error) {
 	filter := bson.M{
-		"schoolId": schoolID,
-		"classId":  classID,
+		"classId": classID,
 	}
 	cur, err := r.coll.Find(ctx, filter, options.Find().SetSort(bson.D{{Key: "createdAt", Value: -1}}))
 	if err != nil {
@@ -77,9 +75,8 @@ func (r *EnrollmentRepository) FindByClass(ctx context.Context, schoolID, classI
 	return list, nil
 }
 
-func (r *EnrollmentRepository) FindByStudent(ctx context.Context, schoolID, studentID bson.ObjectID) ([]*model.StudentEnrollment, error) {
+func (r *EnrollmentRepository) FindByStudent(ctx context.Context, studentID bson.ObjectID) ([]*model.StudentEnrollment, error) {
 	filter := bson.M{
-		"schoolId":  schoolID,
 		"studentId": studentID,
 	}
 	cur, err := r.coll.Find(ctx, filter, options.Find().SetSort(bson.D{{Key: "createdAt", Value: -1}}))
@@ -94,8 +91,8 @@ func (r *EnrollmentRepository) FindByStudent(ctx context.Context, schoolID, stud
 	return list, nil
 }
 
-func (r *EnrollmentRepository) UpdateStatus(ctx context.Context, schoolID, id bson.ObjectID, status model.EnrollmentStatus) error {
-	filter := bson.M{"_id": id, "schoolId": schoolID}
+func (r *EnrollmentRepository) UpdateStatus(ctx context.Context, id bson.ObjectID, status model.EnrollmentStatus) error {
+	filter := bson.M{"_id": id}
 	update := bson.M{"$set": bson.M{"status": status, "updatedAt": time.Now()}}
 	_, err := r.coll.UpdateOne(ctx, filter, update)
 	return err

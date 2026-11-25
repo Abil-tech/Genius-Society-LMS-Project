@@ -18,7 +18,6 @@ const (
 
 // TeacherScope holds the request-scoped teaching authorization context.
 type TeacherScope struct {
-	SchoolID       bson.ObjectID
 	TeacherID      bson.ObjectID
 	UserID         bson.ObjectID
 	AcademicYearID bson.ObjectID
@@ -162,17 +161,6 @@ func TeacherScopeMiddleware(repo repository.TeacherScopeRepository) gin.HandlerF
 			return
 		}
 
-		if usr.SchoolID.IsZero() {
-			c.AbortWithStatusJSON(http.StatusForbidden, dto.ErrorResponse{
-				Success: false,
-				Error: dto.ErrorBody{
-					Code:    "FORBIDDEN",
-					Message: "Pengguna tidak terdaftar pada sekolah manapun",
-				},
-			})
-			return
-		}
-
 		// 2. Load teacher record
 		teacher, err := repo.FindTeacherByUserID(ctx, uid)
 		if err != nil {
@@ -197,7 +185,7 @@ func TeacherScopeMiddleware(repo repository.TeacherScopeRepository) gin.HandlerF
 		}
 
 		// 3. Load active academic year
-		ay, err := repo.FindActiveAcademicYear(ctx, usr.SchoolID)
+		ay, err := repo.FindActiveAcademicYear(ctx)
 		if err != nil {
 			c.AbortWithStatusJSON(http.StatusInternalServerError, dto.ErrorResponse{
 				Success: false,
@@ -220,7 +208,7 @@ func TeacherScopeMiddleware(repo repository.TeacherScopeRepository) gin.HandlerF
 		}
 
 		// 4. Load teaching pairs from teacher_classes
-		pairs, err := repo.FindTeacherClassPairs(ctx, usr.SchoolID, teacher.ID, ay.ID)
+		pairs, err := repo.FindTeacherClassPairs(ctx, teacher.ID, ay.ID)
 		if err != nil {
 			c.AbortWithStatusJSON(http.StatusInternalServerError, dto.ErrorResponse{
 				Success: false,
@@ -239,7 +227,6 @@ func TeacherScopeMiddleware(repo repository.TeacherScopeRepository) gin.HandlerF
 		}
 
 		scope := &TeacherScope{
-			SchoolID:       usr.SchoolID,
 			TeacherID:      teacher.ID,
 			UserID:         usr.ID,
 			AcademicYearID: ay.ID,
@@ -252,7 +239,6 @@ func TeacherScopeMiddleware(repo repository.TeacherScopeRepository) gin.HandlerF
 		c.Set(ContextKeyTeacherScope, scope)
 		c.Set(ContextKeyTeacherID, teacher.ID)
 		c.Set(ContextKeyAcademicYearID, ay.ID)
-		c.Set("schoolID", usr.SchoolID.Hex())
 
 		c.Next()
 	}

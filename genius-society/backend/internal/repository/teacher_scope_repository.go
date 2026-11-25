@@ -20,9 +20,9 @@ type ClassSubjectPair struct {
 type TeacherScopeRepository interface {
 	FindUserByID(ctx context.Context, userID bson.ObjectID) (*model.User, error)
 	FindTeacherByUserID(ctx context.Context, userID bson.ObjectID) (*model.Teacher, error)
-	FindActiveAcademicYear(ctx context.Context, schoolID bson.ObjectID) (*model.AcademicYear, error)
-	FindTeacherClassPairs(ctx context.Context, schoolID, teacherID, academicYearID bson.ObjectID) ([]ClassSubjectPair, error)
-	FindTeacherSubjectIDs(ctx context.Context, schoolID, teacherID bson.ObjectID) ([]bson.ObjectID, error)
+	FindActiveAcademicYear(ctx context.Context) (*model.AcademicYear, error)
+	FindTeacherClassPairs(ctx context.Context, teacherID, academicYearID bson.ObjectID) ([]ClassSubjectPair, error)
+	FindTeacherSubjectIDs(ctx context.Context, teacherID bson.ObjectID) ([]bson.ObjectID, error)
 }
 
 type teacherScopeRepoImpl struct {
@@ -68,10 +68,9 @@ func (r *teacherScopeRepoImpl) FindTeacherByUserID(ctx context.Context, userID b
 	return &t, nil
 }
 
-func (r *teacherScopeRepoImpl) FindActiveAcademicYear(ctx context.Context, schoolID bson.ObjectID) (*model.AcademicYear, error) {
+func (r *teacherScopeRepoImpl) FindActiveAcademicYear(ctx context.Context) (*model.AcademicYear, error) {
 	var ay model.AcademicYear
 	filter := bson.M{
-		"schoolId": schoolID,
 		"isActive": true,
 	}
 	err := r.academicYears.FindOne(ctx, filter).Decode(&ay)
@@ -84,16 +83,10 @@ func (r *teacherScopeRepoImpl) FindActiveAcademicYear(ctx context.Context, schoo
 	return &ay, nil
 }
 
-func (r *teacherScopeRepoImpl) FindTeacherClassPairs(ctx context.Context, schoolID, teacherID, academicYearID bson.ObjectID) ([]ClassSubjectPair, error) {
+func (r *teacherScopeRepoImpl) FindTeacherClassPairs(ctx context.Context, teacherID, academicYearID bson.ObjectID) ([]ClassSubjectPair, error) {
 	filter := bson.M{
 		"teacherId":      teacherID,
 		"academicYearId": academicYearID,
-	}
-	if !schoolID.IsZero() {
-		filter["$or"] = []bson.M{
-			{"schoolId": schoolID},
-			{"schoolId": bson.M{"$exists": false}},
-		}
 	}
 
 	cur, err := r.teacherClasses.Find(ctx, filter)
@@ -122,15 +115,9 @@ func (r *teacherScopeRepoImpl) FindTeacherClassPairs(ctx context.Context, school
 	return pairs, nil
 }
 
-func (r *teacherScopeRepoImpl) FindTeacherSubjectIDs(ctx context.Context, schoolID, teacherID bson.ObjectID) ([]bson.ObjectID, error) {
+func (r *teacherScopeRepoImpl) FindTeacherSubjectIDs(ctx context.Context, teacherID bson.ObjectID) ([]bson.ObjectID, error) {
 	filter := bson.M{
 		"teacherId": teacherID,
-	}
-	if !schoolID.IsZero() {
-		filter["$or"] = []bson.M{
-			{"schoolId": schoolID},
-			{"schoolId": bson.M{"$exists": false}},
-		}
 	}
 
 	cur, err := r.teacherSubjects.Find(ctx, filter)

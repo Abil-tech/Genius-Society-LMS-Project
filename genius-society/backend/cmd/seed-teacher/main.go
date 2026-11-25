@@ -28,7 +28,6 @@ func main() {
 
 	userRepo := repository.NewUserRepository(db)
 	teacherRepo := repository.NewTeacherRepository(db)
-	schoolRepo := repository.NewSchoolRepository(db)
 	ayRepo := repository.NewAcademicYearRepository(db)
 	classRepo := repository.NewClassRepository(db)
 	subjectRepo := repository.NewSubjectRepository(db)
@@ -38,23 +37,15 @@ func main() {
 	teachersColl := db.Collection("teachers")
 	classesColl := db.Collection("classes")
 
-	// 1. Get or create demo school
-	demoSchool, err := schoolRepo.FindOrCreateByName(ctx, "Demo School", "Jl. Pendidikan No.1, Jakarta")
-	if err != nil {
-		log.Fatalf("failed to get demo school: %v", err)
-	}
-	log.Printf("Demo school ID: %s", demoSchool.ID.Hex())
-
-	// 2. Get or create active academic year
-	ay, err := ayRepo.FindActiveBySchool(ctx, demoSchool.ID)
+	// 1. Get or create active academic year
+	ay, err := ayRepo.FindActive(ctx)
 	if err != nil || ay == nil {
 		demoAYName := "2026/2027"
-		existingAY, _ := ayRepo.FindByName(ctx, demoSchool.ID, demoAYName)
+		existingAY, _ := ayRepo.FindByName(ctx, demoAYName)
 		if existingAY != nil {
 			ay = existingAY
 		} else {
 			ay = &model.AcademicYear{
-				SchoolID:  demoSchool.ID,
 				Name:      demoAYName,
 				Semester:  1,
 				StartDate: time.Date(2026, time.July, 1, 0, 0, 0, 0, time.UTC),
@@ -69,7 +60,7 @@ func main() {
 	}
 	log.Printf("Active academic year: %s (ID %s)", ay.Name, ay.ID.Hex())
 
-	// 3. Find guru1 and guru2 users
+	// 2. Find guru1 and guru2 users
 	guru1User, err := userRepo.FindByUsername(ctx, "guru1")
 	if err != nil || guru1User == nil {
 		log.Fatalf("user guru1 not found in database; please run cmd/seed first")
@@ -77,14 +68,6 @@ func main() {
 	guru2User, err := userRepo.FindByUsername(ctx, "guru2")
 	if err != nil || guru2User == nil {
 		log.Fatalf("user guru2 not found in database; please run cmd/seed first")
-	}
-
-	// Ensure users have demo school ID
-	if guru1User.SchoolID.IsZero() {
-		_ = userRepo.UpdateSchoolID(ctx, guru1User.ID, demoSchool.ID)
-	}
-	if guru2User.SchoolID.IsZero() {
-		_ = userRepo.UpdateSchoolID(ctx, guru2User.ID, demoSchool.ID)
 	}
 
 	// 4. Find or create teacher profiles
@@ -121,7 +104,6 @@ func main() {
 	classes := make(map[string]*model.Class)
 	for _, name := range classNames {
 		filter := bson.M{
-			"schoolId":       demoSchool.ID,
 			"academicYearId": ay.ID,
 			"name":           name,
 		}
@@ -134,7 +116,6 @@ func main() {
 			classes[name] = &cl
 		} else {
 			newClass := &model.Class{
-				SchoolID:       demoSchool.ID,
 				Code:           name,
 				Name:           name,
 				EducationLevel: "SMA",
@@ -221,7 +202,6 @@ func main() {
 				"_id":       bson.NewObjectID(),
 				"teacherId": teacherID,
 				"subjectId": subjectID,
-				"schoolId":  demoSchool.ID,
 				"createdAt": time.Now(),
 				"updatedAt": time.Now(),
 			},
@@ -251,7 +231,6 @@ func main() {
 				"classId":        classID,
 				"subjectId":      subjectID,
 				"academicYearId": ay.ID,
-				"schoolId":       demoSchool.ID,
 				"createdAt":      time.Now(),
 				"updatedAt":      time.Now(),
 			},

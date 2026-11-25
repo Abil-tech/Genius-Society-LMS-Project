@@ -7,7 +7,6 @@ import (
 	"github.com/geniussociety/backend/internal/handler"
 	"github.com/geniussociety/backend/internal/middleware"
 	"github.com/geniussociety/backend/internal/model"
-	"github.com/geniussociety/backend/internal/repository"
 	"github.com/geniussociety/backend/internal/service"
 	"github.com/gin-contrib/cors"
 	"github.com/gin-gonic/gin"
@@ -23,7 +22,6 @@ func Setup(
 	subjectManagementSvc *service.SubjectManagementService,
 	classManagementSvc *service.ClassManagementService,
 	academicYearSvc *service.AcademicYearService,
-	userRepo *repository.UserRepository,
 ) *gin.Engine {
 	if cfg.AppEnv == "production" {
 		gin.SetMode(gin.ReleaseMode)
@@ -73,52 +71,51 @@ func Setup(
 	// Protected routes
 	protected := api.Group("/")
 	protected.Use(middleware.Auth(authSvc))
-	protected.Use(middleware.SetSchoolID(userRepo))
 	protected.Use(middleware.PrincipalReadOnly())
 
-	// Admin Dashboard endpoint (Hanya Admin dan Super Admin)
-	protected.GET("/admin/dashboard", middleware.RequireRoles(model.RoleAdmin, model.RoleSuperAdmin), adminDashboardHandler.GetMetrics)
+	// Admin Dashboard endpoint (Hanya Admin)
+	protected.GET("/admin/dashboard", middleware.RequireRoles(model.RoleAdmin), adminDashboardHandler.GetMetrics)
 
-	// Student Management routes (Admin, Super Admin, Kepala Sekolah read-only)
+	// Student Management routes (Admin, Kepala Sekolah read-only)
 	studentHandler := handler.NewStudentManagementHandler(studentManagementSvc)
 	students := protected.Group("/students")
 	{
 		students.GET("", studentHandler.List)
 		students.GET("/stats", studentHandler.Stats)
 		students.GET("/:id", studentHandler.GetOne)
-		students.POST("", middleware.RequireRoles(model.RoleAdmin, model.RoleSuperAdmin), studentHandler.Create)
-		students.PUT("/:id", middleware.RequireRoles(model.RoleAdmin, model.RoleSuperAdmin), studentHandler.Update)
-		students.POST("/bulk/class", middleware.RequireRoles(model.RoleAdmin, model.RoleSuperAdmin), studentHandler.BulkClass)
-		students.POST("/bulk/status", middleware.RequireRoles(model.RoleAdmin, model.RoleSuperAdmin), studentHandler.BulkStatus)
-		students.POST("/:id/account", middleware.RequireRoles(model.RoleAdmin, model.RoleSuperAdmin), studentHandler.CreateAccount)
-		students.PATCH("/:id/account/toggle", middleware.RequireRoles(model.RoleAdmin, model.RoleSuperAdmin), studentHandler.ToggleAccount)
-		students.DELETE("/:id", middleware.RequireRoles(model.RoleAdmin, model.RoleSuperAdmin), studentHandler.Delete)
+		students.POST("", middleware.RequireRoles(model.RoleAdmin), studentHandler.Create)
+		students.PUT("/:id", middleware.RequireRoles(model.RoleAdmin), studentHandler.Update)
+		students.POST("/bulk/class", middleware.RequireRoles(model.RoleAdmin), studentHandler.BulkClass)
+		students.POST("/bulk/status", middleware.RequireRoles(model.RoleAdmin), studentHandler.BulkStatus)
+		students.POST("/:id/account", middleware.RequireRoles(model.RoleAdmin), studentHandler.CreateAccount)
+		students.PATCH("/:id/account/toggle", middleware.RequireRoles(model.RoleAdmin), studentHandler.ToggleAccount)
+		students.DELETE("/:id", middleware.RequireRoles(model.RoleAdmin), studentHandler.Delete)
 	}
 
-	// Teacher Management routes (Admin, Super Admin, Kepala Sekolah read-only)
+	// Teacher Management routes (Admin, Kepala Sekolah read-only)
 	teacherHandler := handler.NewTeacherManagementHandler(teacherManagementSvc)
 	teachers := protected.Group("/teachers")
 	{
 		teachers.GET("", teacherHandler.List)
 		teachers.GET("/stats", teacherHandler.Stats)
 		teachers.GET("/:id", teacherHandler.GetOne)
-		teachers.POST("", middleware.RequireRoles(model.RoleAdmin, model.RoleSuperAdmin, model.RoleCurriculum), teacherHandler.Create)
-		teachers.PUT("/:id", middleware.RequireRoles(model.RoleAdmin, model.RoleSuperAdmin, model.RoleCurriculum), teacherHandler.Update)
-		teachers.DELETE("/:id", middleware.RequireRoles(model.RoleAdmin, model.RoleSuperAdmin), teacherHandler.Delete)
-		teachers.POST("/:id/account", middleware.RequireRoles(model.RoleAdmin, model.RoleSuperAdmin), teacherHandler.CreateAccount)
-		teachers.PATCH("/:id/account/toggle", middleware.RequireRoles(model.RoleAdmin, model.RoleSuperAdmin), teacherHandler.ToggleAccount)
+		teachers.POST("", middleware.RequireRoles(model.RoleAdmin, model.RoleCurriculum), teacherHandler.Create)
+		teachers.PUT("/:id", middleware.RequireRoles(model.RoleAdmin, model.RoleCurriculum), teacherHandler.Update)
+		teachers.DELETE("/:id", middleware.RequireRoles(model.RoleAdmin), teacherHandler.Delete)
+		teachers.POST("/:id/account", middleware.RequireRoles(model.RoleAdmin), teacherHandler.CreateAccount)
+		teachers.PATCH("/:id/account/toggle", middleware.RequireRoles(model.RoleAdmin), teacherHandler.ToggleAccount)
 	}
 
-	// Subject Management routes (Admin, Super Admin, Kurikulum, Kepala Sekolah read-only)
+	// Subject Management routes (Admin, Kurikulum, Kepala Sekolah read-only)
 	subjectHandler := handler.NewSubjectManagementHandler(subjectManagementSvc)
 	subjects := protected.Group("/subjects")
 	{
 		subjects.GET("", subjectHandler.List)
 		subjects.GET("/stats", subjectHandler.Stats)
 		subjects.GET("/:id", subjectHandler.GetOne)
-		subjects.POST("", middleware.RequireRoles(model.RoleAdmin, model.RoleSuperAdmin, model.RoleCurriculum), subjectHandler.Create)
-		subjects.PUT("/:id", middleware.RequireRoles(model.RoleAdmin, model.RoleSuperAdmin, model.RoleCurriculum), subjectHandler.Update)
-		subjects.DELETE("/:id", middleware.RequireRoles(model.RoleAdmin, model.RoleSuperAdmin, model.RoleCurriculum), subjectHandler.Delete)
+		subjects.POST("", middleware.RequireRoles(model.RoleAdmin, model.RoleCurriculum), subjectHandler.Create)
+		subjects.PUT("/:id", middleware.RequireRoles(model.RoleAdmin, model.RoleCurriculum), subjectHandler.Update)
+		subjects.DELETE("/:id", middleware.RequireRoles(model.RoleAdmin, model.RoleCurriculum), subjectHandler.Delete)
 	}
 
 	// Class Management routes (Admin only, school scoped)
@@ -170,16 +167,14 @@ func Setup(
 		academicDecisions.POST("/:decisionId/resolve", middleware.RequireRoles(model.RoleAdmin), academicYearHandler.ResolveDecision)
 	}
 
-	// User management
-	// Super Admin: CRUD all users
-	// Admin: CRUD non-admin users
+	// User management (Admin only)
 	users := protected.Group("/users")
 	{
-		users.GET("", middleware.RequireRoles(model.RoleSuperAdmin, model.RoleAdmin), userHandler.List)
-		users.POST("", middleware.RequireRoles(model.RoleSuperAdmin, model.RoleAdmin), userHandler.Create)
-		users.GET("/:id", middleware.RequireRoles(model.RoleSuperAdmin, model.RoleAdmin), userHandler.GetOne)
-		users.PUT("/:id", middleware.RequireRoles(model.RoleSuperAdmin, model.RoleAdmin), userHandler.Update)
-		users.DELETE("/:id", middleware.RequireRoles(model.RoleSuperAdmin, model.RoleAdmin), userHandler.Delete)
+		users.GET("", middleware.RequireRoles(model.RoleAdmin), userHandler.List)
+		users.POST("", middleware.RequireRoles(model.RoleAdmin), userHandler.Create)
+		users.GET("/:id", middleware.RequireRoles(model.RoleAdmin), userHandler.GetOne)
+		users.PUT("/:id", middleware.RequireRoles(model.RoleAdmin), userHandler.Update)
+		users.DELETE("/:id", middleware.RequireRoles(model.RoleAdmin), userHandler.Delete)
 	}
 
 	RegisterTeacher(protected)

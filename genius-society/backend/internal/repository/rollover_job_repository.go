@@ -32,27 +32,27 @@ func (r *RolloverJobRepository) Create(ctx context.Context, job *model.RolloverJ
 	return nil
 }
 
-func (r *RolloverJobRepository) FindByID(ctx context.Context, schoolID, id bson.ObjectID) (*model.RolloverJob, error) {
+func (r *RolloverJobRepository) FindByID(ctx context.Context, id bson.ObjectID) (*model.RolloverJob, error) {
 	var job model.RolloverJob
-	filter := bson.M{"_id": id, "schoolId": schoolID}
+	filter := bson.M{"_id": id}
 	if err := r.coll.FindOne(ctx, filter).Decode(&job); err != nil {
 		return nil, err
 	}
 	return &job, nil
 }
 
-func (r *RolloverJobRepository) FindByIdempotencyKey(ctx context.Context, schoolID bson.ObjectID, key string) (*model.RolloverJob, error) {
+func (r *RolloverJobRepository) FindByIdempotencyKey(ctx context.Context, key string) (*model.RolloverJob, error) {
 	var job model.RolloverJob
-	filter := bson.M{"schoolId": schoolID, "idempotencyKey": key}
+	filter := bson.M{"idempotencyKey": key}
 	if err := r.coll.FindOne(ctx, filter).Decode(&job); err != nil {
 		return nil, err
 	}
 	return &job, nil
 }
 
-func (r *RolloverJobRepository) FindByYearAndType(ctx context.Context, schoolID, academicYearID bson.ObjectID, processType model.ProcessType) ([]*model.RolloverJob, error) {
+func (r *RolloverJobRepository) FindByYearAndType(ctx context.Context, academicYearID bson.ObjectID, processType model.ProcessType) ([]*model.RolloverJob, error) {
 	filter := bson.M{
-		"schoolId":             schoolID,
+		
 		"sourceAcademicYearId": academicYearID,
 		"processType":          processType,
 	}
@@ -68,9 +68,9 @@ func (r *RolloverJobRepository) FindByYearAndType(ctx context.Context, schoolID,
 	return list, nil
 }
 
-func (r *RolloverJobRepository) Update(ctx context.Context, schoolID, id bson.ObjectID, update bson.M) error {
+func (r *RolloverJobRepository) Update(ctx context.Context, id bson.ObjectID, update bson.M) error {
 	update["updatedAt"] = time.Now()
-	filter := bson.M{"_id": id, "schoolId": schoolID}
+	filter := bson.M{"_id": id}
 	_, err := r.coll.UpdateOne(ctx, filter, bson.M{"$set": update})
 	return err
 }
