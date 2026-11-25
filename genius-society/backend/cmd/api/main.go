@@ -1,0 +1,85 @@
+package main
+
+import (
+	"context"
+	"fmt"
+	"log"
+
+	"github.com/geniussociety/backend/internal/config"
+	"github.com/geniussociety/backend/internal/repository"
+	"github.com/geniussociety/backend/internal/service"
+	"github.com/geniussociety/backend/internal/storage"
+	"github.com/geniussociety/backend/routes"
+)
+
+func main() {
+	cfg, err := config.Load()
+	if err != nil {
+		log.Fatalf("config error: %v", err)
+	}
+
+	db, err := config.ConnectMongo(cfg.MongoURI, cfg.MongoDB)
+	if err != nil {
+		log.Fatalf("mongodb connection error: %v", err)
+	}
+	log.Println("Connected to MongoDB:", cfg.MongoDB)
+	_ = config.EnsureTeacherIndexes(context.Background(), db)
+	routes.InitTeacher(db)
+	routes.InitStudent(db)
+
+	// Repositories
+	userRepo := repository.NewUserRepository(db)
+	teacherRepo := repository.NewTeacherRepository(db)
+	studentRepo := repository.NewStudentRepository(db)
+	classRepo := repository.NewClassRepository(db)
+	subjectRepo := repository.NewSubjectRepository(db)
+
+	// Services
+	authSvc := service.NewAuthService(userRepo, teacherRepo, cfg)
+	userSvc := service.NewUserService(userRepo, teacherRepo, studentRepo)
+	adminDashboardSvc := service.NewAdminDashboardService(db)
+	studentManagementSvc := service.NewStudentManagementService(studentRepo, userRepo, classRepo, db)
+	teacherManagementSvc := service.NewTeacherManagementService(teacherRepo, userRepo, classRepo, db)
+	subjectManagementSvc := service.NewSubjectManagementService(subjectRepo, teacherRepo, db)
+	// Academic Year service (Admin scoped)
+	ayRepo := repository.NewAcademicYearRepository(db)
+	enrollmentRepo := repository.NewEnrollmentRepository(db)
+	decisionRepo := repository.NewAcademicDecisionRepository(db)
+	rolloverJobRepo := repository.NewRolloverJobRepository(db)
+	auditRepo := repository.NewAuditLogRepository(db)
+	academicYearSvc := service.NewAcademicYearService(
+		ayRepo,
+		studentRepo,
+		classRepo,
+		userRepo,
+		enrollmentRepo,
+		decisionRepo,
+		rolloverJobRepo,
+		auditRepo,
+		db,
+	)
+
+	// Class management service
+	classManagementSvc := service.NewClassService(classRepo)
+
+	// Storage (B2) — optional: log warning if not configured
+	b2, err := storage.NewB2Storage(cfg)
+	if err != nil {
+		log.Printf("WARNING: B2 storage not configured: %v", err)
+		b2 = nil
+	} else {
+		log.Println("B2 storage initialized:", cfg.B2BucketName)
+	}
+	routes.InitTeacherStorage(storage.NewFileStorage(b2))
+	routes.InitStudentStorage(storage.NewFileStorage(b2))
+	_ = b2 // will be injected into future handlers
+
+	// Router
+	r := routes.Setup(cfg, authSvc, userSvc, adminDashboardSvc, studentManagementSvc, teacherManagementSvc, subjectManagementSvc, classManagementSvc, academicYearSvc)
+
+	addr := fmt.Sprintf(":%s", cfg.Port)
+	log.Printf("Server starting on %s (env: %s)", addr, cfg.AppEnv)
+	if err := r.Run(addr); err != nil {
+		log.Fatalf("server error: %v", err)
+	}
+}
